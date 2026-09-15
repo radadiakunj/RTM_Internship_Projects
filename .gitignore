@@ -38,7 +38,6 @@ Unconfirmed*
 *.exe
 *.msi
 *.apk
-*.mp4
 
 # Office / temp
 ~WRL*.tmp
