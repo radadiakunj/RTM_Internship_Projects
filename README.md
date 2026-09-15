@@ -1,6 +1,5 @@
 ﻿# RTM Internship - Month 1
 
-**Repository:** `RTM_Internship_1_Mon`  
 **Organization:** RoboTechMech (RTM)  
 **Focus:** Rhino AMR integration, ESP32 call-station development, CAD, and internship deliverables related to **Orcha** and **StowProof**
 
@@ -9,49 +8,6 @@
 ## Overview
 
 This repository contains Month-1 internship work covering documentation, system architecture, mechanical CAD, embedded firmware, supporting software tools, reference AMR materials, and project media (photos and videos).
-
----
-
-## Repository Structure
-
-```text
-RTM_Internship_1_Mon/
-|
-|-- Documentation/                 # Project documents and records
-|   |-- Reports/                   # Progress reports and summaries
-|   |-- BOM/                       # Bills of materials
-|   |-- Circuits/                  # Circuit design PDFs
-|   `-- Testing/                   # Test logs and sheets
-|
-|-- Architecture_Design/           # System and hardware design visuals
-|   |-- Diagrams/                  # Architecture diagrams (Draw.io, PDF, HTML, JPG)
-|   `-- References/                # Sketches and reference images
-|
-|-- CAD_Design/                    # All mechanical / 3D design assets
-|   |-- Fusion360/                 # Native Fusion 360 designs (.f3d, .f3z)
-|   |-- STL_Files/                 # 3D-print ready meshes (.stl)
-|   |-- STEP_Files/                # CAD interchange files (.step, .stp)
-|   |-- Component_Libraries/       # Vendor / GrabCAD component packs
-|   `-- Scripts/                   # Fusion 360 automation scripts
-|
-|-- Firmware/                      # Embedded and IoT firmware projects
-|   |-- ESP32_MQTT_Rhino_AMR/      # MQTT call-station and Rhino AMR integration
-|   |-- ESP32_WIFI_Connection/     # ESP32 Wi-Fi setup and monitoring tools
-|   `-- Industrial_Numpad/         # Industrial numpad firmware, cloud, and simulation
-|
-|-- Software/                      # Desktop / utility applications
-|   `-- Drive_Diagnostics_Cleaning/
-|
-|-- AMR_Resources/                 # Product manuals and SDK references
-|   |-- Manuals/
-|   `-- SDK/
-|
-|-- Photos/                        # Project photographs and hardware captures
-|-- Videos/                        # Project demonstration and process videos
-|
-|-- .gitignore
-`-- README.md
-```
 
 ---
 
