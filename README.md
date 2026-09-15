@@ -1,4 +1,4 @@
-﻿# RTM Internship - Month 1
+﻿# RTM Internship - 1 Month
 
 **Organization:** RoboTechMech (RTM)  
 **Focus:** Rhino AMR integration, ESP32 call-station development, CAD, and internship deliverables related to **Orcha** and **StowProof**
