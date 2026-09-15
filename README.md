@@ -35,7 +35,7 @@ This repository contains Month-1 internship work covering documentation, system 
 1. Clone the repository:
    ```bash
    git clone https://github.com/radadiakunj/RTM_Internship_Projects.git
-   cd RTM_Internship_1_Mon
+   cd RTM_Internship_Projects
    ```
 2. For Node.js apps under `Firmware/` (for example `portal` or Testing Server):
    ```bash
