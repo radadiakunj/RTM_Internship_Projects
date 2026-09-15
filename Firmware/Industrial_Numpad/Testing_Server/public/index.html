@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Mission Log</title>
+<style>
+  body {
+    font-family: -apple-system, Segoe UI, Roboto, sans-serif;
+    background: #0f1117;
+    color: #e6e6e6;
+    margin: 0;
+    padding: 24px;
+  }
+  h1 {
+    font-size: 1.4rem;
+    margin-bottom: 4px;
+  }
+  .sub {
+    color: #8a8f98;
+    font-size: 0.85rem;
+    margin-bottom: 20px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #161922;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  th, td {
+    text-align: left;
+    padding: 10px 14px;
+    font-size: 0.9rem;
+    border-bottom: 1px solid #262a35;
+  }
+  th {
+    background: #1d212c;
+    color: #a9afbc;
+    font-weight: 600;
+  }
+  tr:last-child td { border-bottom: none; }
+  .badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 0.8rem;
+    background: #2d6cdf22;
+    color: #6ea8fe;
+  }
+  .empty {
+    color: #8a8f98;
+    padding: 30px;
+    text-align: center;
+  }
+  #status {
+    font-size: 0.75rem;
+    color: #5c6270;
+    margin-top: 16px;
+  }
+</style>
+</head>
+<body>
+  <h1>🤖 Mission Log</h1>
+  <div class="sub">Live view of tasks stored by the keypad controller</div>
+
+  <table id="missionsTable">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Task</th>
+        <th>Description</th>
+        <th>Received (server time)</th>
+      </tr>
+    </thead>
+    <tbody id="missionsBody">
+      <tr><td colspan="4" class="empty">Loading...</td></tr>
+    </tbody>
+  </table>
+
+  <div id="status">Auto-refreshing every 3s...</div>
+
+<script>
+async function loadMissions() {
+  try {
+    const res = await fetch('/api/missions');
+    const missions = await res.json();
+    const body = document.getElementById('missionsBody');
+
+    if (missions.length === 0) {
+      body.innerHTML = '<tr><td colspan="4" class="empty">No missions stored yet</td></tr>';
+      return;
+    }
+
+    body.innerHTML = missions
+      .slice()
+      .reverse()
+      .map(m => `
+        <tr>
+          <td>${m.id}</td>
+          <td><span class="badge">Task ${m.task}</span></td>
+          <td>${m.description || '-'}</td>
+          <td>${new Date(m.received_at).toLocaleString()}</td>
+        </tr>
+      `).join('');
+
+    document.getElementById('status').textContent =
+      `Auto-refreshing every 3s — last updated ${new Date().toLocaleTimeString()}`;
+  } catch (err) {
+    document.getElementById('status').textContent = 'Failed to reach server: ' + err.message;
+  }
+}
+
+loadMissions();
+setInterval(loadMissions, 3000);
+</script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+{
+  "hostname": "rbot55f-260114-003-001",
+  "token": "PASTE_ROBOT_TOKEN_HERE",
+  "encryptKey": "PASTE_PAIRING_KEY_HERE",
+  "navIp": "192.168.5.75",
+  "mqttUsername": "",
+  "mqttPassword": "",
+  "brokers": {
+    "amr": {
+      "label": "AMR Local MQTT (Nav IP)",
+      "host": "192.168.5.75",
+      "port": 1883,
+      "username": "",
+      "password": ""
+    },
+    "embedded": {
+      "label": "Local Embedded (no Wi-Fi)",
+      "host": "127.0.0.1",
+      "port": 2883
+    },
+    "cloud": {
+      "label": "Cloud Calling (mqtt.rmbot.cn)",
+      "host": "mqtt.rmbot.cn",
+      "port": 1883
+    },
+    "local": {
+      "label": "Local Floor (Mosquitto)",
+      "host": "192.168.5.117",
+      "port": 1883
+    }
+  },
+  "embeddedBroker": {
+    "enabled": true,
+    "host": "127.0.0.1",
+    "port": 2883,
+    "mockRobot": true
+  },
+  "heartbeatIntervalMs": 4000,
+  "httpPort": 3080,
+  "missionHistory": {
+    "topic": "callstation/mission/record",
+    "brokerProfile": "callMode",
+    "maxRecords": 500
+  }
+}

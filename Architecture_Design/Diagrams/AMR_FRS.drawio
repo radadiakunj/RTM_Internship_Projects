@@ -1,0 +1,123 @@
+<mxfile host="Electron" modified="2026-07-19T09:53:44.949Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/23.1.5 Chrome/120.0.6099.109 Electron/28.1.0 Safari/537.36" etag="vSe7OyqEFAl0ShCib7Qw" version="23.1.5" type="device">
+  <diagram name="Page-1" id="2YBvvXClWsGukQMizWep">
+    <mxGraphModel dx="1050" dy="621" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="d_RyyHQMIOc7lax1g9Gx-1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="d_RyyHQMIOc7lax1g9Gx-2" target="d_RyyHQMIOc7lax1g9Gx-4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="d_RyyHQMIOc7lax1g9Gx-2" value="230V AC (Wall)" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="120" y="690" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="d_RyyHQMIOc7lax1g9Gx-3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="d_RyyHQMIOc7lax1g9Gx-4" target="d_RyyHQMIOc7lax1g9Gx-6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="d_RyyHQMIOc7lax1g9Gx-4" value="3-Core AC Power Cable&lt;br/&gt;                (L, N, Earth)" style="whiteSpace=wrap;html=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="120" y="830" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="d_RyyHQMIOc7lax1g9Gx-5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="d_RyyHQMIOc7lax1g9Gx-6" target="d_RyyHQMIOc7lax1g9Gx-8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="d_RyyHQMIOc7lax1g9Gx-6" value="DIN-Rail Power Supply (12V or 24V)" style="whiteSpace=wrap;html=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="120" y="970" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="d_RyyHQMIOc7lax1g9Gx-7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="d_RyyHQMIOc7lax1g9Gx-8" target="d_RyyHQMIOc7lax1g9Gx-11">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="d_RyyHQMIOc7lax1g9Gx-8" value="18 AWG Red (+)&lt;br/&gt;             18 AWG Black (0V)" style="whiteSpace=wrap;html=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="120" y="1110" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="d_RyyHQMIOc7lax1g9Gx-9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="d_RyyHQMIOc7lax1g9Gx-11" target="d_RyyHQMIOc7lax1g9Gx-13">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="d_RyyHQMIOc7lax1g9Gx-11" value="&#xa;WAGO DIN-Rail Terminal Blocks&#xa;&#xa;" style="whiteSpace=wrap;html=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="180" y="1230" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="d_RyyHQMIOc7lax1g9Gx-12" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="d_RyyHQMIOc7lax1g9Gx-13" target="d_RyyHQMIOc7lax1g9Gx-16">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="d_RyyHQMIOc7lax1g9Gx-13" value="12V to 5V DC-DC Converter" style="whiteSpace=wrap;html=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1350" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="d_RyyHQMIOc7lax1g9Gx-15" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="d_RyyHQMIOc7lax1g9Gx-16" target="d_RyyHQMIOc7lax1g9Gx-18">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="d_RyyHQMIOc7lax1g9Gx-16" value="&amp;nbsp;5V Output" style="whiteSpace=wrap;html=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1490" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="d_RyyHQMIOc7lax1g9Gx-17" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="d_RyyHQMIOc7lax1g9Gx-18" target="d_RyyHQMIOc7lax1g9Gx-23">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="d_RyyHQMIOc7lax1g9Gx-18" value="USB-C / VIN" style="whiteSpace=wrap;html=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1630" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="d_RyyHQMIOc7lax1g9Gx-19" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="d_RyyHQMIOc7lax1g9Gx-23" target="d_RyyHQMIOc7lax1g9Gx-25">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="d_RyyHQMIOc7lax1g9Gx-20" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="d_RyyHQMIOc7lax1g9Gx-23" target="d_RyyHQMIOc7lax1g9Gx-25">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="d_RyyHQMIOc7lax1g9Gx-21" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="d_RyyHQMIOc7lax1g9Gx-23" target="d_RyyHQMIOc7lax1g9Gx-27">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="d_RyyHQMIOc7lax1g9Gx-22" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="d_RyyHQMIOc7lax1g9Gx-23" target="d_RyyHQMIOc7lax1g9Gx-29">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="d_RyyHQMIOc7lax1g9Gx-23" value="ESP32-S3 Controller" style="whiteSpace=wrap;html=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1770" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="d_RyyHQMIOc7lax1g9Gx-24" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="d_RyyHQMIOc7lax1g9Gx-25" target="d_RyyHQMIOc7lax1g9Gx-34">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="d_RyyHQMIOc7lax1g9Gx-25" value="Forward Button" style="whiteSpace=wrap;html=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1910" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="d_RyyHQMIOc7lax1g9Gx-26" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="d_RyyHQMIOc7lax1g9Gx-27" target="d_RyyHQMIOc7lax1g9Gx-34">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="280" y="2080" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="d_RyyHQMIOc7lax1g9Gx-27" value="Reverse Button" style="whiteSpace=wrap;html=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="220" y="1910" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="d_RyyHQMIOc7lax1g9Gx-28" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="d_RyyHQMIOc7lax1g9Gx-29" target="d_RyyHQMIOc7lax1g9Gx-34">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="d_RyyHQMIOc7lax1g9Gx-29" value="Emergency Stop" style="whiteSpace=wrap;html=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="390" y="1910" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="d_RyyHQMIOc7lax1g9Gx-30" value="22 AWG Wire" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="100" y="1848" width="100" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="d_RyyHQMIOc7lax1g9Gx-31" value="22 AWG Wire" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="275" y="1848" width="100" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="d_RyyHQMIOc7lax1g9Gx-32" value="22 AWG Wire" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="450" y="1848" width="100" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="d_RyyHQMIOc7lax1g9Gx-33" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="d_RyyHQMIOc7lax1g9Gx-34" target="d_RyyHQMIOc7lax1g9Gx-36">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="d_RyyHQMIOc7lax1g9Gx-34" value="ESP32 GPIO" style="whiteSpace=wrap;html=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="2050" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="d_RyyHQMIOc7lax1g9Gx-35" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="d_RyyHQMIOc7lax1g9Gx-36" target="d_RyyHQMIOc7lax1g9Gx-38">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="d_RyyHQMIOc7lax1g9Gx-36" value="WiFi (MQTT)" style="whiteSpace=wrap;html=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="2190" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="d_RyyHQMIOc7lax1g9Gx-37" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="d_RyyHQMIOc7lax1g9Gx-38" target="d_RyyHQMIOc7lax1g9Gx-39">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="d_RyyHQMIOc7lax1g9Gx-38" value="Rhino AMR API" style="whiteSpace=wrap;html=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="2330" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="d_RyyHQMIOc7lax1g9Gx-39" value="Forward / Backward" style="whiteSpace=wrap;html=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="2470" width="120" height="60" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

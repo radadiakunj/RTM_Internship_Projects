@@ -1,0 +1,12 @@
+#pragma once
+// Copy to config.h and edit
+#define WIFI_SSID     "RTM_Speed"
+#define WIFI_PASSWORD "1234"
+#define MQTT_HOST     "192.168.5.117"
+#define MQTT_PORT     1883
+#define MQTT_USER     ""
+#define MQTT_PASS     ""
+#define STATION_ID    "home1"
+#define POINT_HOME    "Home"
+#define POINT_PICK    "A"
+#define POINT_DROP    "D"

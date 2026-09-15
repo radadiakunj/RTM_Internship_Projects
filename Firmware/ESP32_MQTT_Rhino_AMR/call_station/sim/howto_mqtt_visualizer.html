@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Simulate — How_to_Use_MQTT_with_ESP32_Step_by_Step.ino</title>
+<style>
+  :root {
+    --bg:#0f141c; --panel:#171e2a; --line:#2b364a; --text:#e8eef8;
+    --muted:#8b97ab; --accent:#5b8cff; --ok:#3ddc97; --warn:#f0c14a; --err:#ff5c5c;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--text)}
+  header{padding:.9rem 1.2rem;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:.6rem;justify-content:space-between;align-items:center}
+  h1{margin:0;font-size:1.05rem}
+  .sub{color:var(--muted);font-size:.82rem}
+  .toolbar{display:flex;flex-wrap:wrap;gap:.4rem}
+  button,select{border:1px solid var(--line);background:#1c2638;color:var(--text);border-radius:8px;padding:.45rem .7rem;cursor:pointer;font:inherit}
+  button.primary{background:#243a28;border-color:#3a6}
+  button.danger{background:#3a1e22;border-color:#844}
+  .layout{display:grid;grid-template-columns:1.05fr 1fr 1.05fr;gap:.85rem;padding:.85rem}
+  @media(max-width:1050px){.layout{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:.85rem}
+  .card h2{margin:0 0 .6rem;font-size:.75rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+  .board{background:#0e1320;border:1px solid #31405c;border-radius:10px;padding:1rem}
+  .chip{text-align:center;margin:0 auto .8rem;padding:.65rem;border:2px solid #3d4d6b;border-radius:8px;max-width:300px;color:var(--muted);font-size:.78rem}
+  .chip strong{display:block;color:var(--text);font-size:.95rem}
+  .row{display:flex;gap:.7rem;justify-content:center;flex-wrap:wrap;margin:.55rem 0}
+  .btn-hw{width:88px;height:88px;border-radius:50%;border:3px solid #777;background:#f3f5f8;color:#222;font-weight:700;font-size:.72rem;display:grid;place-items:center;user-select:none;cursor:pointer}
+  .btn-hw:active,.btn-hw.pressed{transform:scale(.94);filter:brightness(.85)}
+  .led{width:40px;height:40px;border-radius:50%;background:#222;border:2px solid #444;position:relative}
+  .led span{position:absolute;left:50%;top:112%;transform:translateX(-50%);font-size:.65rem;color:var(--muted);white-space:nowrap}
+  .led.on-y{background:var(--warn);box-shadow:0 0 18px var(--warn);border-color:#fe8}
+  .led.on-g{background:var(--ok);box-shadow:0 0 18px var(--ok);border-color:#afa}
+  .led.on-r{background:var(--err);box-shadow:0 0 18px var(--err);border-color:#faa}
+  .pill{font-size:.72rem;padding:.2rem .5rem;border-radius:999px;border:1px solid var(--line);color:var(--muted);margin-right:.35rem}
+  .pill.on{color:var(--ok);border-color:#2a6}
+  .pill.off{color:var(--err);border-color:#833}
+  .log{font-family:ui-monospace,Consolas,monospace;font-size:.72rem;background:#0c1018;border:1px solid #243044;border-radius:8px;height:280px;overflow:auto;padding:.55rem;white-space:pre-wrap}
+  .mqtt .pub{color:#7dd3fc}.mqtt .sub{color:#c4b5fd}
+  .code{font-family:ui-monospace,Consolas,monospace;font-size:.72rem;background:#0c1018;border:1px solid #243044;border-radius:8px;height:340px;overflow:auto;padding:.55rem;white-space:pre-wrap}
+  .code .active{background:#1e3a5f;outline:1px solid var(--accent);display:block;margin:0 -.3rem;padding:.15rem .3rem;border-radius:4px}
+  .flow{display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.8rem;font-size:.72rem;color:var(--muted);align-items:center}
+  .flow .s{padding:.2rem .45rem;border:1px solid var(--line);border-radius:6px}
+  .flow .s.now{background:#1e3a5f;color:var(--text);border-color:var(--accent)}
+  footer{padding:.7rem 1.2rem;color:var(--muted);font-size:.75rem;border-top:1px solid var(--line)}
+  code{color:#9ec1ff}
+
+  /* ---- Interactive circuit (Wokwi / Tinkercad style) ---- */
+  .circuit-wrap{padding:0 .85rem 1.2rem}
+  .circuit-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:1rem 1.1rem}
+  .ckt-toolbar{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:.75rem}
+  .ckt-toolbar .title{font-size:.75rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-right:auto}
+  .plug-btn.connected{background:#243a28;border-color:#3a6}
+  .plug-btn.disconnected{background:#3a1e22;border-color:#844}
+  .meter-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.5rem;margin-bottom:.75rem}
+  .meter{background:#0c1018;border:1px solid #243044;border-radius:10px;padding:.55rem .7rem}
+  .meter .lab{font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+  .meter .val{font-size:1.2rem;font-weight:700;font-family:ui-monospace,Consolas,monospace;margin-top:.15rem}
+  .meter .val.live{color:var(--ok)}
+  .meter .val.dead{color:var(--err)}
+  .meter .sub{font-size:.7rem;color:var(--muted);margin-top:.15rem}
+  .breadboard{
+    position:relative;border:3px solid #0f3d26;border-radius:10px;min-height:440px;
+    background-color:#1b5e3b;
+    background-image:radial-gradient(circle,#0f3d26 1.15px,transparent 1.35px);
+    background-size:14px 14px;overflow:hidden;
+  }
+  .wire-layer{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+  .wire-layer line{stroke-width:3;stroke-linecap:round;opacity:.28;transition:opacity .2s}
+  .wire-layer line.hot{opacity:1;filter:drop-shadow(0 0 4px currentColor)}
+  .part{
+    position:absolute;border-radius:8px;border:2px solid #556;background:#1a2030;
+    padding:.45rem .55rem;cursor:pointer;user-select:none;min-width:96px;text-align:center;
+    transition:transform .12s,box-shadow .15s,opacity .2s,border-color .2s;
+    font-size:.72rem;color:var(--text);z-index:2;
+  }
+  .part:hover{transform:translateY(-2px);box-shadow:0 6px 14px rgba(0,0,0,.35)}
+  .part.selected{outline:2px solid var(--accent)}
+  .part .name{font-weight:700;font-size:.78rem}
+  .part .probe{font-family:ui-monospace,Consolas,monospace;font-size:.68rem;margin-top:.22rem;color:var(--muted)}
+  .part .probe.on{color:var(--ok)} .part .probe.off{color:var(--err)}
+  .part.battery{left:20px;top:28px;border-color:#f0c14a;width:118px}
+  .part.battery.unplugged{opacity:.4;border-style:dashed}
+  .part.buck{left:170px;top:28px;border-color:#5b8cff;width:125px}
+  .part.esp{left:325px;top:22px;border-color:#3ddc97;width:155px}
+  .part.btn{left:355px;top:210px;width:95px;height:95px;border-radius:50%;background:#f3f5f8;color:#222;border-color:#888;display:grid;place-items:center;padding:0}
+  .part.btn .name{font-size:.68rem;line-height:1.2}
+  .part.ledr{left:520px;top:22px;border-color:#ff5c5c;width:175px}
+  .part.ledy{left:520px;top:105px;border-color:#f0c14a;width:175px}
+  .part.ledg{left:520px;top:188px;border-color:#3ddc97;width:175px}
+  .part.wifi{left:520px;top:275px;border-color:#5b8cff;width:175px}
+  .part.gndbar{left:20px;top:390px;width:calc(100% - 40px);border-color:#777;background:#151a22}
+  .part.lit-r{box-shadow:0 0 20px #ff5c5c99;background:#3a1515}
+  .part.lit-y{box-shadow:0 0 20px #f0c14a99;background:#3a3015}
+  .part.lit-g{box-shadow:0 0 20px #3ddc9799;background:#153a22}
+  .ckt-hint{color:var(--muted);font-size:.78rem;margin-top:.7rem;line-height:1.45}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Simulate: How_to_Use_MQTT_with_ESP32_Step_by_Step.ino</h1>
+    <div class="sub">ONE White press → MQTT <code>run_job</code> once · <b>Green=A</b> → <b>Yellow=D</b> → <b>Red=Home</b></div>
+  </div>
+  <div class="toolbar">
+    <button class="primary" id="boot">▶ setup() / Reset</button>
+    <button id="demo">Auto-demo job phases</button>
+    <button class="danger" id="fail">MQTT fail</button>
+    <button id="clear">Clear logs</button>
+    <label class="sub">Speed
+      <select id="speed"><option value="1">1×</option><option value="2" selected>2×</option><option value="4">4×</option></select>
+    </label>
+  </div>
+</header>
+
+<div class="layout">
+  <section class="card">
+    <h2>Hardware</h2>
+    <div style="margin-bottom:.55rem">
+      <span class="pill" id="pWifi">WiFi OFF</span>
+      <span class="pill" id="pMqtt">MQTT OFF</span>
+      <span class="pill" id="pPhase">phase: —</span>
+    </div>
+    <div class="board">
+      <div class="chip"><strong>ESP32 (learning sketch)</strong>How_to_Use_MQTT_with_ESP32_Step_by_Step.ino</div>
+      <div class="row"><div class="btn-hw" id="btn" title="GPIO4">WHITE<br/>START<br/>GPIO4</div></div>
+      <div class="row">
+        <div class="led" id="ledY"><span>YEL GPIO7</span></div>
+        <div class="led" id="ledG"><span>GRN GPIO8</span></div>
+        <div class="led" id="ledR"><span>RED GPIO6</span></div>
+      </div>
+      <div class="flow" id="flow">
+        <span class="s" data-p="connecting">connecting</span>→
+        <span class="s" data-p="idle">idle</span>→
+        <span class="s" data-p="to_pick">to_pick</span>→
+        <span class="s" data-p="lifting">lifting</span>→
+        <span class="s" data-p="to_drop">to_drop</span>→
+        <span class="s" data-p="to_home">to_home</span>→
+        <span class="s" data-p="idle2">idle</span>
+      </div>
+    </div>
+  </section>
+  <section class="card">
+    <h2>Active function (mirrors .ino)</h2>
+    <div class="code" id="code"></div>
+  </section>
+  <section class="card">
+    <h2>Serial Monitor</h2>
+    <div class="log" id="serial"></div>
+    <h2 style="margin-top:.65rem">MQTT bus</h2>
+    <div class="log mqtt" id="mqtt"></div>
+  </section>
+</div>
+
+<section class="circuit-wrap">
+  <div class="circuit-card">
+    <div class="ckt-toolbar">
+      <div class="title">Interactive circuit · Tinkercad / Wokwi style</div>
+      <button type="button" class="plug-btn connected" id="btnPlug">Battery: CONNECTED (click to unplug)</button>
+    </div>
+
+    <div class="meter-strip">
+      <div class="meter"><div class="lab">Battery rail</div><div class="val live" id="mBat">12.00 V</div><div class="sub" id="mBatI">I ≈ 80 mA</div></div>
+      <div class="meter"><div class="lab">Buck → ESP32 VIN</div><div class="val live" id="m5v">5.00 V</div><div class="sub" id="m5vI">I ≈ 80 mA</div></div>
+      <div class="meter"><div class="lab">Active LED module</div><div class="val live" id="mLed">0.00 V</div><div class="sub" id="mLedI">I = 0 mA</div></div>
+      <div class="meter"><div class="lab">Probe (click a part)</div><div class="val" id="mProbe">click…</div><div class="sub" id="mProbeSub">voltage / current</div></div>
+    </div>
+
+    <div class="breadboard" id="breadboard">
+      <svg class="wire-layer" viewBox="0 0 720 440" preserveAspectRatio="none">
+        <line id="wBatBuck" x1="138" y1="60" x2="170" y2="60" stroke="#f0c14a"/>
+        <line id="wBuckEsp" x1="295" y1="60" x2="325" y2="60" stroke="#5b8cff"/>
+        <line id="w12a" x1="75" y1="100" x2="75" y2="155" stroke="#f0c14a"/>
+        <line id="w12b" x1="75" y1="155" x2="520" y2="155" stroke="#f0c14a"/>
+        <line id="wEspBtn" x1="400" y1="170" x2="400" y2="210" stroke="#ccc"/>
+        <line id="wG6" x1="480" y1="115" x2="520" y2="50" stroke="#ff5c5c"/>
+        <line id="wG7" x1="480" y1="130" x2="520" y2="130" stroke="#f0c14a"/>
+        <line id="wG8" x1="480" y1="145" x2="520" y2="210" stroke="#3ddc97"/>
+        <line id="wWifi" x1="480" y1="90" x2="520" y2="310" stroke="#5b8cff" stroke-dasharray="6 4"/>
+        <line id="wGnd" x1="30" y1="405" x2="690" y2="405" stroke="#888" stroke-width="5"/>
+      </svg>
+
+      <div class="part battery" id="pBat" data-id="battery">
+        <div class="name">12V Battery</div>
+        <div class="probe on" id="pBatV">+12.00 V</div>
+        <div class="probe" id="pBatState">PLUGGED IN</div>
+      </div>
+      <div class="part buck" id="pBuck" data-id="buck">
+        <div class="name">Buck 12→5V</div>
+        <div class="probe on" id="pBuckV">OUT 5.00 V</div>
+      </div>
+      <div class="part esp" id="pEsp" data-id="esp">
+        <div class="name">ESP32-S3</div>
+        <div class="probe on" id="pEspV">VIN 5.00 V</div>
+        <div class="probe" id="pEspGpio">GPIO6/7/8 = L</div>
+      </div>
+      <div class="part btn" id="pBtnCkt" data-id="button" title="Click = same as White START">
+        <div class="name">WHITE<br/>GPIO4→GND</div>
+      </div>
+      <div class="part ledr" id="pLedR" data-id="ledr">
+        <div class="name">RED · → Home</div>
+        <div class="probe off" id="pLedRV">0.00 V · 0 mA</div>
+      </div>
+      <div class="part ledy" id="pLedY" data-id="ledy">
+        <div class="name">YELLOW · → D</div>
+        <div class="probe off" id="pLedYV">0.00 V · 0 mA</div>
+      </div>
+      <div class="part ledg" id="pLedG" data-id="ledg">
+        <div class="name">GREEN · → A</div>
+        <div class="probe off" id="pLedGV">0.00 V · 0 mA</div>
+      </div>
+      <div class="part wifi" id="pWifiCkt" data-id="wifi">
+        <div class="name">Wi‑Fi + MQTT</div>
+        <div class="probe" id="pWifiV">needs 5V power</div>
+      </div>
+      <div class="part gndbar" data-id="gnd">
+        <div class="name">COMMON GND = 0.00 V (always)</div>
+      </div>
+    </div>
+
+    <p class="ckt-hint">
+      <b>Plug &amp; play:</b> click <b>Battery: CONNECTED / UNPLUGGED</b>.
+      Unplugged → every rail shows <b>0.00 V</b> and <b>0 mA</b> (no power).
+      Connected → Battery <b>12.00 V</b>, Buck/ESP32 <b>5.00 V</b>, active LED module ~<b>12 V</b> / ~<b>40–60 mA</b>.
+      Click parts to probe. Breadboard White button or top White START runs the job LEDs.
+    </p>
+  </div>
+</section>
+
+<footer>
+  Browser simulation only. Real AMR: Mosquitto + <code>call_station/bridge/call_station_dashboard.py</code>.
+  Firmware: <code>firmware/call_station_esp32s3/</code>
+</footer>
+
+<script>
+const CFG = { ssid:"RTM_Speed", mqtt_server:"192.168.5.117", mqtt_port:1883, station_id:"home1" };
+const topic_cmd    = `floor/callstation/${CFG.station_id}/cmd`;
+const topic_leds   = `floor/callstation/${CFG.station_id}/leds`;
+const topic_status = `floor/callstation/${CFG.station_id}/status`;
+
+const BLOCKS = [
+  {id:"setup", title:"setup()", lines:["pinMode(BTN/YEL/GRN/RED);","setup_wifi(); client.setServer(...);"]},
+  {id:"setup_wifi", title:"setup_wifi()", lines:['WiFi.begin("RTM_Speed","1234");','Serial.println(localIP);']},
+  {id:"reconnect", title:"reconnect()", lines:['client.connect(...);','subscribe leds; applyPhase("idle");']},
+  {id:"loop_btn", title:"loop() button", lines:['ONE press → publish run_job;','LED movie Green→Yellow→Red']},
+  {id:"callback", title:"callback()", lines:['bridge {"phase":...} → applyPhase']},
+  {id:"applyPhase", title:"applyPhase()", lines:["A→GREEN  D→YELLOW  Home→RED","idle→off  error→all on"]},
+];
+
+const S = {wifi:false, mqtt:false, fail:false, phase:"connecting", fn:"setup", y:0,g:0,r:0};
+const CKT = { batteryIn: true, probe: "battery" };
+
+const $ = id => document.getElementById(id);
+const speed = () => Number($("speed").value)||1;
+const wait = ms => new Promise(r => setTimeout(r, ms/speed()));
+
+function serial(line){ const e=$("serial"); e.textContent += line+"\n"; e.scrollTop=e.scrollHeight; }
+function mqtt(dir, topic, payload){
+  const e=$("mqtt");
+  e.innerHTML += `<div class="${dir==="PUB"?"pub":"sub"}">${dir} ${topic}\n  ${payload}</div>`;
+  e.scrollTop = e.scrollHeight;
+}
+function setFn(id){ S.fn=id; renderCode(); }
+function renderCode(){
+  $("code").innerHTML = BLOCKS.map(b=>{
+    const a = b.id===S.fn ? "active":"";
+    return `<div class="${a}"><b>${b.title}</b>\n  ${b.lines.join("\n  ")}\n</div>`;
+  }).join("\n");
+}
+
+function fmt(v){ return (Math.round(v*100)/100).toFixed(2); }
+
+function electrical(){
+  const on = CKT.batteryIn;
+  const ledOn = on && (S.y || S.g || S.r);
+  const ledCount = (S.y?1:0)+(S.g?1:0)+(S.r?1:0);
+  const iEsp = on ? 80 : 0;                 // mA ESP idle/wifi approx
+  const iLedEach = 50;                      // mA per 12V signal module (approx)
+  const iLed = on ? ledCount * iLedEach : 0;
+  const iBat = iEsp + iLed;
+  return {
+    on,
+    vBat: on ? 12 : 0,
+    v5: on ? 5 : 0,
+    vGpio: on ? 3.3 : 0,
+    iBat, iEsp, iLed,
+    vLedR: on && S.r ? 12 : 0,
+    vLedY: on && S.y ? 12 : 0,
+    vLedG: on && S.g ? 12 : 0,
+    iLedR: on && S.r ? iLedEach : 0,
+    iLedY: on && S.y ? iLedEach : 0,
+    iLedG: on && S.g ? iLedEach : 0,
+  };
+}
+
+function setMeter(el, text, live){
+  el.textContent = text;
+  el.className = "val " + (live ? "live" : "dead");
+}
+
+function updateCircuitUI(){
+  const e = electrical();
+  const live = e.on;
+
+  setMeter($("mBat"), fmt(e.vBat)+" V", live);
+  $("mBatI").textContent = live ? `I ≈ ${e.iBat} mA (ESP ${e.iEsp} + LEDs ${e.iLed})` : "I = 0 mA · No voltage";
+  setMeter($("m5v"), fmt(e.v5)+" V", live);
+  $("m5vI").textContent = live ? `I ≈ ${e.iEsp} mA to ESP32` : "I = 0 mA · No voltage";
+
+  let vActive = 0, iActive = 0, which = "none";
+  if (e.vLedG){ vActive=e.vLedG; iActive=e.iLedG; which="GREEN (A)"; }
+  else if (e.vLedY){ vActive=e.vLedY; iActive=e.iLedY; which="YELLOW (D)"; }
+  else if (e.vLedR){ vActive=e.vLedR; iActive=e.iLedR; which="RED (Home)"; }
+  setMeter($("mLed"), fmt(vActive)+" V", live && vActive>0);
+  $("mLedI").textContent = (live && vActive>0) ? `${which} · I ≈ ${iActive} mA` : "I = 0 mA · module off / no power";
+
+  // Parts
+  $("pBat").classList.toggle("unplugged", !live);
+  $("pBatV").textContent = live ? "+12.00 V" : "0.00 V";
+  $("pBatV").className = "probe " + (live?"on":"off");
+  $("pBatState").textContent = live ? "PLUGGED IN" : "UNPLUGGED · 0 V";
+  $("pBuckV").textContent = live ? "OUT 5.00 V" : "OUT 0.00 V";
+  $("pBuckV").className = "probe " + (live?"on":"off");
+  $("pEspV").textContent = live ? "VIN 5.00 V" : "VIN 0.00 V · OFF";
+  $("pEspV").className = "probe " + (live?"on":"off");
+  $("pEspGpio").textContent = live
+    ? `GPIO6/7/8 = ${S.r?"H":"L"}/${S.y?"H":"L"}/${S.g?"H":"L"}`
+    : "GPIO floating (no power)";
+
+  const setLedPart = (part, probe, on, v, i) => {
+    part.classList.toggle("lit-r", part=== $("pLedR") && on);
+    part.classList.toggle("lit-y", part=== $("pLedY") && on);
+    part.classList.toggle("lit-g", part=== $("pLedG") && on);
+    probe.textContent = `${fmt(v)} V · ${i} mA`;
+    probe.className = "probe " + (on ? "on" : "off");
+  };
+  setLedPart($("pLedR"), $("pLedRV"), !!e.vLedR, e.vLedR, e.iLedR);
+  setLedPart($("pLedY"), $("pLedYV"), !!e.vLedY, e.vLedY, e.iLedY);
+  setLedPart($("pLedG"), $("pLedGV"), !!e.vLedG, e.vLedG, e.iLedG);
+
+  $("pWifiV").textContent = live
+    ? (S.wifi ? "RTM_Speed · powered" : "5V OK · WiFi connecting")
+    : "0 V · radio off";
+
+  // Wire glow
+  ["wBatBuck","wBuckEsp","w12a","w12b","wEspBtn","wWifi","wGnd"].forEach(id=>{
+    const n=$(id); if(n) n.classList.toggle("hot", live);
+  });
+  $("wG6").classList.toggle("hot", !!e.vLedR);
+  $("wG7").classList.toggle("hot", !!e.vLedY);
+  $("wG8").classList.toggle("hot", !!e.vLedG);
+
+  // Plug button
+  const pb=$("btnPlug");
+  pb.textContent = live ? "Battery: CONNECTED (click to unplug)" : "Battery: UNPLUGGED (click to plug in)";
+  pb.className = "plug-btn " + (live ? "connected" : "disconnected");
+
+  updateProbe();
+}
+
+function updateProbe(){
+  const e = electrical();
+  const map = {
+    battery: [`${fmt(e.vBat)} V`, e.on ? `Supply current ≈ ${e.iBat} mA` : "No voltage · 0 mA"],
+    buck: [`${fmt(e.v5)} V`, e.on ? `ESP branch ≈ ${e.iEsp} mA` : "No voltage · 0 mA"],
+    esp: [`${fmt(e.v5)} V`, e.on ? "Board powered" : "No voltage · MCU off"],
+    button: [e.on ? "3.3 V pull-up" : "0 V", "NO switch to GND when pressed"],
+    ledr: [`${fmt(e.vLedR)} V`, `${e.iLedR} mA · Home phase`],
+    ledy: [`${fmt(e.vLedY)} V`, `${e.iLedY} mA · Point D phase`],
+    ledg: [`${fmt(e.vLedG)} V`, `${e.iLedG} mA · Point A phase`],
+    wifi: [e.on ? "5 V domain" : "0 V", e.on ? "MQTT path live" : "No voltage"],
+    gnd: ["0.00 V", "Reference · always 0 V"],
+  };
+  const row = map[CKT.probe] || ["—","click a part"];
+  const live = e.on || CKT.probe==="gnd";
+  setMeter($("mProbe"), row[0], live && !(row[0].startsWith("0.00") && CKT.probe!=="gnd"));
+  if (!e.on && CKT.probe!=="gnd") setMeter($("mProbe"), "0.00 V", false);
+  $("mProbeSub").textContent = (!e.on && CKT.probe!=="gnd") ? "No voltage · 0 mA (battery unplugged)" : row[1];
+
+  document.querySelectorAll(".part").forEach(p=>{
+    p.classList.toggle("selected", p.dataset.id===CKT.probe);
+  });
+}
+
+function applyPhase(phase){
+  setFn("applyPhase");
+  S.phase = phase;
+  if (phase==="error"){ S.y=1;S.g=1;S.r=1; }
+  else if (phase==="to_pick" || phase==="lifting"){ S.y=0;S.g=1;S.r=0; }
+  else if (phase==="to_drop" || phase==="placing"){ S.y=1;S.g=0;S.r=0; }
+  else if (phase==="to_home" || phase==="done"){ S.y=0;S.g=0;S.r=1; }
+  else { S.y=0;S.g=0;S.r=0; }
+  serial(`phase=${phase}`);
+  paint();
+}
+
+function paint(){
+  $("ledY").className = "led"+(S.y?" on-y":"");
+  $("ledG").className = "led"+(S.g?" on-g":"");
+  $("ledR").className = "led"+(S.r?" on-r":"");
+  $("pWifi").textContent = S.wifi?"WiFi ON":"WiFi OFF";
+  $("pWifi").className = "pill "+(S.wifi?"on":"off");
+  $("pMqtt").textContent = S.mqtt?"MQTT ON":"MQTT OFF";
+  $("pMqtt").className = "pill "+(S.mqtt?"on":"off");
+  $("pPhase").textContent = "phase: "+S.phase;
+  document.querySelectorAll("#flow .s").forEach(n=>{
+    const p = n.dataset.p==="idle2" ? "idle" : n.dataset.p;
+    n.classList.toggle("now", p===S.phase && !(n.dataset.p==="idle2" && S.phase!=="idle"));
+    if (n.dataset.p==="idle2" && S.phase==="idle" && S.mqtt) n.classList.add("now");
+  });
+  updateCircuitUI();
+}
+
+async function boot(){
+  if (!CKT.batteryIn){
+    serial("Cannot boot: battery UNPLUGGED (0 V)");
+    applyPhase("error");
+    return;
+  }
+  S.wifi=false; S.mqtt=false;
+  $("serial").textContent=""; $("mqtt").innerHTML="";
+  setFn("setup"); serial("setup()");
+  applyPhase("connecting");
+  await wait(300);
+  setFn("setup_wifi");
+  serial(`WiFi: ${CFG.ssid}`);
+  for (let i=0;i<4;i++){ serial("."); await wait(200); }
+  S.wifi=true; paint();
+  serial(""); serial("IP: 192.168.5.200 (sim)");
+  setFn("reconnect"); serial("MQTT...");
+  await wait(500);
+  if (S.fail){ serial("fail rc=-2"); applyPhase("error"); return; }
+  S.mqtt=true; serial("ok");
+  mqtt("SUB", topic_leds, "(subscribe)");
+  mqtt("PUB", topic_status, '{"state":"online"}');
+  applyPhase("idle");
+}
+
+async function press(){
+  if (!CKT.batteryIn){
+    serial("Button ignored: battery unplugged (0 V / 0 mA)");
+    applyPhase("error");
+    return;
+  }
+  $("btn").classList.add("pressed");
+  setFn("loop_btn");
+  await wait(70);
+  if (!S.mqtt){ applyPhase("error"); serial("Button ignored: MQTT offline"); }
+  else {
+    const payload = JSON.stringify({cmd:"run_job",station:CFG.station_id,home:"Home",pick:"A",drop:"D"});
+    mqtt("PUB", topic_cmd, payload);
+    serial("=== ONE press: MQTT run_job (A→D→Home) ===");
+    serial(payload);
+    applyPhase("to_pick");
+    await wait(1200);
+    setFn("callback");
+    mqtt("SUB", topic_leds, JSON.stringify({phase:"to_drop"}));
+    applyPhase("to_drop");
+    await wait(1200);
+    mqtt("SUB", topic_leds, JSON.stringify({phase:"to_home"}));
+    applyPhase("to_home");
+    await wait(1000);
+    mqtt("SUB", topic_leds, JSON.stringify({phase:"idle"}));
+    applyPhase("idle");
+  }
+  $("btn").classList.remove("pressed");
+}
+
+async function demo(){ if (!S.mqtt) await boot(); await press(); }
+
+$("boot").onclick = ()=>{ S.fail=false; boot(); };
+$("demo").onclick = demo;
+$("fail").onclick = ()=>{ S.fail=true; boot(); };
+$("clear").onclick = ()=>{ $("serial").textContent=""; $("mqtt").innerHTML=""; };
+$("btn").onmousedown = ()=>press();
+$("pBtnCkt").onclick = ()=>press();
+
+$("btnPlug").onclick = ()=>{
+  CKT.batteryIn = !CKT.batteryIn;
+  if (!CKT.batteryIn){
+    S.wifi=false; S.mqtt=false;
+    S.y=0; S.g=0; S.r=0; S.phase="idle";
+    serial("=== BATTERY UNPLUGGED → 0.00 V / 0 mA on all rails ===");
+  } else {
+    serial("=== BATTERY PLUGGED IN → 12 V present ===");
+  }
+  paint();
+};
+
+document.querySelectorAll(".part").forEach(p=>{
+  p.addEventListener("click", (ev)=>{
+    if (p.dataset.id==="button") return; // handled separately
+    CKT.probe = p.dataset.id;
+    updateProbe();
+  });
+});
+
+renderCode();
+paint();
+boot();
+</script>
+</body>
+</html>

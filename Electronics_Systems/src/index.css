@@ -1,0 +1,98 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap');
+
+:root {
+  --bg: #dfe7ee;
+  --surface: #fffdf8;
+  --surface-2: #f4f7fa;
+  --surface-3: #e8eef2;
+  --border: #c5d0db;
+  --border-soft: #d7e0e8;
+  --text: #1d3557;
+  --text-muted: #5c6b7a;
+  --text-subtle: #6b7c8d;
+  --accent: #c17f3e;
+  --accent-hover: #a86b2e;
+  --accent-contrast: #ffffff;
+  --danger: #c1121f;
+  --danger-soft: #fff5f5;
+  --danger-border: #f1aeb5;
+  --warn: #bc6c25;
+  --warn-soft: #fffaf0;
+  --warn-border: #f0d4a8;
+  --info-soft: #f4f9fc;
+  --info-border: #b8d4e8;
+  --ok: #2d6a4f;
+  --canvas-bg: #e8eef2;
+  --canvas-dot: #9aabbc;
+  --scrollbar: #b7c4d1;
+  --shadow: rgba(29, 53, 87, 0.12);
+  --wire: #1d3557;
+  --note: #9b2226;
+  color-scheme: light;
+}
+
+[data-theme='dark'] {
+  --bg: #10151c;
+  --surface: #1a222c;
+  --surface-2: #212b37;
+  --surface-3: #283442;
+  --border: #39485a;
+  --border-soft: #303e4e;
+  --text: #e7eef7;
+  --text-muted: #a3b4c6;
+  --text-subtle: #8598ab;
+  --accent: #d69152;
+  --accent-hover: #e3a468;
+  --accent-contrast: #16110b;
+  --danger: #ff7b87;
+  --danger-soft: #33202430;
+  --danger-border: #7c3a42;
+  --warn: #e8a75d;
+  --warn-soft: #2f281c50;
+  --warn-border: #7a5f35;
+  --info-soft: #1d2a3650;
+  --info-border: #3b5a75;
+  --ok: #6fce9f;
+  --canvas-bg: #151c25;
+  --canvas-dot: #3c4c5e;
+  --scrollbar: #45566a;
+  --shadow: rgba(0, 0, 0, 0.45);
+  --wire: #9db8d8;
+  --note: #ff9aa5;
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  background: var(--bg);
+  transition: background 0.25s ease;
+}
+
+button,
+input {
+  font-family: inherit;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar);
+  border-radius: 999px;
+}

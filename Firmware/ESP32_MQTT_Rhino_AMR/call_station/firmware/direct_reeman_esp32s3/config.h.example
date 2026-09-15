@@ -1,0 +1,54 @@
+#pragma once
+/*
+ * Copy to config.h and fill real values.
+ * Breadboard buttons (left → right):
+ *   White=1(home) Black=D Green=A Red=C Yellow=B Green=2(charge)
+ * Credentials: paste ROBOT_HOSTNAME + ROBOT_TOKEN from AMR Call Mode, then upload.
+ */
+
+static const char* WIFI_SSID     = "YOUR_WIFI_SSID";
+static const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
+
+static const char* MQTT_HOST = "192.168.x.x";
+static const int   MQTT_PORT = 1883;
+static const char* MQTT_USER = "";
+static const char* MQTT_PASS = "";
+
+static const char* ROBOT_HOSTNAME = "rbot55f-260114-003-001";
+static const char* ROBOT_TOKEN    = "PASTE_TOKEN_HERE";
+static const char* ROBOT_KEY      = "a5F6dmfr";
+
+static const char* TASK_MAP   = "";
+static const char* POINT_HOME = "home";
+static const char* POINT_CHARGE = "charge";
+static const char* POINT_PICK = "p2";
+static const char* POINT_DROP = "p3";
+
+static const unsigned long HOME_DWELL_MS = 2500;
+static const unsigned long IDLE_HOLD_MS = 2500;
+static const unsigned long NO_MOTION_TIMEOUT_MS = 45000;
+
+static const int MIN_BATTERY_PCT = 20;
+static const unsigned long ROBOT_HB_MAX_AGE_MS = 8000;
+static const unsigned long PHONE_HB_INTERVAL_MS = 4000;
+
+static const int PIN_CANCEL_BTN = -1;
+static const int PIN_RGB        = 48;
+static const uint8_t RGB_BRIGHT = 40;
+
+static const int BTN_1_PIN = 4;
+static const int BTN_D_PIN = 5;
+static const int BTN_A_PIN = 6;
+static const int BTN_C_PIN = 7;
+static const int BTN_B_PIN = 8;
+static const int BTN_2_PIN = 10;
+static const unsigned long BTN_DEBOUNCE_MS = 40;
+
+static const int LCD_SDA_PIN = 1;
+static const int LCD_SCL_PIN = 2;
+static const uint8_t LCD_I2C_ADDR = 0x27;
+static const uint8_t LCD_COLS = 16;
+static const uint8_t LCD_ROWS = 2;
+
+static const char* MISSION_TOPIC = "callstation/mission/record";
+static const char* STATION_ID    = "esp-direct-1";

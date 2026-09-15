@@ -1,0 +1,14 @@
+{
+  "httpPort": 3081,
+  "adminPassword": "CHANGE_ME_ADMIN",
+  "mqtt": {
+    "host": "127.0.0.1",
+    "port": 1883,
+    "username": "",
+    "password": ""
+  },
+  "palletHistory": {
+    "topic": "callstation/pallet/record",
+    "maxRecords": 1000
+  }
+}

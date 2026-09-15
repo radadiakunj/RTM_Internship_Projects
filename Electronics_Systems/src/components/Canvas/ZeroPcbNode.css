@@ -1,0 +1,230 @@
+.zero-pcb.diylc {
+  background: #f7f0dc;
+  border: 1px solid #8b7355;
+  border-radius: 4px;
+  box-shadow: 0 8px 24px rgba(70, 50, 30, 0.18);
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  overflow: visible;
+  user-select: none;
+}
+
+.zero-pcb.is-selected {
+  box-shadow:
+    0 0 0 3px rgba(201, 133, 58, 0.5),
+    0 10px 28px rgba(70, 50, 30, 0.2);
+}
+
+.zero-pcb__dragbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  background: linear-gradient(90deg, #8f5a24, #c9853a);
+  color: #fff;
+  border-radius: 4px 4px 0 0;
+  cursor: grab;
+}
+
+.zero-pcb__dragbar:active {
+  cursor: grabbing;
+}
+
+.zero-pcb__grip {
+  font-size: 14px;
+  letter-spacing: -2px;
+  opacity: 0.85;
+}
+
+.zero-pcb__dragbar strong {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.zero-pcb__dragbar-sub {
+  margin-left: auto;
+  font-size: 10px;
+  font-family: 'IBM Plex Mono', monospace;
+  opacity: 0.85;
+}
+
+.zero-pcb__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: #ebe2c4;
+  border-bottom: 1px solid #c4b48a;
+}
+
+.zero-pcb__tools {
+  display: flex;
+  gap: 4px;
+}
+
+.zero-pcb__tools button {
+  border: 1px solid #a89060;
+  background: #faf6e8;
+  color: #4a3b28;
+  font-size: 11px;
+  font-weight: 650;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.zero-pcb__tools button.active {
+  background: #c9853a;
+  border-color: #a66a2a;
+  color: #fff;
+}
+
+.zero-pcb__tools button.ghost {
+  background: transparent;
+}
+
+.zero-pcb__colors {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+}
+
+.zero-pcb__colors .swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  padding: 0;
+  cursor: pointer;
+}
+
+.zero-pcb__colors .swatch.active {
+  outline: 2px solid #4a3b28;
+  outline-offset: 1px;
+}
+
+.zero-pcb__meta {
+  margin-left: auto;
+  font-size: 10px;
+  font-family: 'IBM Plex Mono', monospace;
+  color: #5c4a32;
+}
+
+.zero-pcb__board-wrap {
+  position: relative;
+  padding: 4px 18px 4px 8px;
+  background: #e8dcb0;
+}
+
+.zero-pcb__svg {
+  display: block;
+}
+
+.zero-pcb__label {
+  fill: #5c4033;
+  font-size: 8px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.zero-pcb__hole {
+  cursor: crosshair;
+}
+
+.zero-pcb__hole:hover {
+  fill: #fff8dc;
+  stroke: #c9853a;
+  stroke-width: 1.2;
+}
+
+.zero-pcb__jumper {
+  cursor: pointer;
+}
+
+.zero-pcb__jumper:hover {
+  opacity: 0.75;
+}
+
+.zero-pcb__strip-handles {
+  position: absolute;
+  left: 2px;
+  top: 0;
+  bottom: 0;
+  width: 10px;
+  pointer-events: none;
+}
+
+.zero-pcb__strip-handle {
+  width: 7px !important;
+  height: 7px !important;
+  left: 2px !important;
+  border: 1px solid #fff !important;
+  background: #5c4033 !important;
+  pointer-events: all;
+  opacity: 0.55;
+}
+
+.zero-pcb__strip-handle:hover {
+  opacity: 1;
+  background: #c9853a !important;
+}
+
+.zero-pcb__rail-handles {
+  position: absolute;
+  right: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 16px;
+  pointer-events: none;
+}
+
+.zero-pcb__rail-slot {
+  position: absolute;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transform: translateY(-50%);
+  pointer-events: all;
+  flex-direction: row-reverse;
+}
+
+.zero-pcb__rail-slot span {
+  font-size: 8px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 600;
+  color: #5c4033;
+  background: rgba(250, 246, 232, 0.95);
+  border: 1px solid #c4b48a;
+  padding: 1px 3px;
+  border-radius: 2px;
+  white-space: nowrap;
+  max-width: 70px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.zero-pcb__handle {
+  width: 10px !important;
+  height: 10px !important;
+  border: 2px solid #fff !important;
+  position: relative !important;
+  transform: none !important;
+  left: auto !important;
+  top: auto !important;
+}
+
+.zero-pcb__hint {
+  margin: 0;
+  padding: 5px 8px 7px;
+  font-size: 10px;
+  color: #5c4a32;
+  background: #f7f0dc;
+  border-top: 1px solid #c4b48a;
+  line-height: 1.35;
+}
+
+.zero-pcb__hint b {
+  color: #4a3b28;
+}

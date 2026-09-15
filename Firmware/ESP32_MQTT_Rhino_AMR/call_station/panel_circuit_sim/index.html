@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Call Station Panel — Circuit + Task-14 Sim</title>
+  <style>
+    :root {
+      --bg: #f4f2ec;
+      --ink: #1a1a1a;
+      --muted: #5c5c5c;
+      --line: #2a2a2a;
+      --wire: #3d5a80;
+      --wire-hot: #c1121f;
+      --wire-gnd: #2d6a4f;
+      --ok: #2d6a4f;
+      --panel: #fffef9;
+      --accent: #1d3557;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.45;
+    }
+    header {
+      padding: 1rem 1.25rem 0.5rem;
+      border-bottom: 1px solid #d8d4c8;
+      background: var(--panel);
+    }
+    header h1 { margin: 0 0 0.25rem; font-size: 1.25rem; color: var(--accent); }
+    header p { margin: 0; color: var(--muted); font-size: 0.9rem; max-width: 72rem; }
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr minmax(260px, 320px);
+      gap: 1rem;
+      padding: 1rem;
+      align-items: start;
+    }
+    @media (max-width: 980px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+    .schematic-wrap {
+      background: var(--panel);
+      border: 1px solid #d8d4c8;
+      border-radius: 4px;
+      overflow: auto;
+      padding: 0.75rem;
+    }
+    svg.schematic { width: 100%; min-width: 860px; height: auto; display: block; }
+    .wire { fill: none; stroke: var(--wire); stroke-width: 2; stroke-linecap: square; stroke-linejoin: miter; }
+    .wire.gnd { stroke: var(--wire-gnd); }
+    .wire.hot { stroke: var(--wire-hot); stroke-width: 2.6; }
+    .wire.open { stroke-dasharray: 6 4; opacity: 0.4; }
+    .wire.closed { stroke-dasharray: none; opacity: 1; }
+    .box {
+      fill: #f8f6f0;
+      stroke: var(--line);
+      stroke-width: 1.6;
+    }
+    .box.clickable { cursor: pointer; }
+    .box.clickable:hover { fill: #efebe0; }
+    .box-title { font-size: 12px; font-weight: 700; fill: var(--accent); }
+    .label { font-size: 11px; fill: var(--ink); }
+    .small { font-size: 10px; fill: var(--muted); }
+    .pin { fill: #111; stroke: #fff; stroke-width: 1.2; }
+    .box-zone-line { stroke: #d8d4c8; stroke-width: 1; }
+    .pin-label { font-size: 9px; font-weight: 600; fill: var(--muted); }
+    .pin-outside { font-size: 9px; font-weight: 700; fill: var(--accent); }
+    .sw-dot { fill: #111; }
+    .sw-arm { stroke: #111; stroke-width: 2.5; stroke-linecap: round; }
+    .led-glow-g { fill: #2a9d8f; }
+    .led-glow-y { fill: #e9c46a; }
+    .led-glow-r { fill: #e76f51; }
+    .led-off { fill: #cfc9bb; stroke: #8a8578; stroke-width: 1; }
+    .side { display: flex; flex-direction: column; gap: 0.75rem; }
+    .card {
+      background: var(--panel);
+      border: 1px solid #d8d4c8;
+      border-radius: 4px;
+      padding: 0.85rem 1rem;
+    }
+    .card h2 { margin: 0 0 0.5rem; font-size: 0.95rem; color: var(--accent); }
+    .status-row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 0.5rem 0; }
+    .pill {
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      padding: 0.25rem 0.55rem; border: 1px solid #d0cbc0;
+      border-radius: 999px; font-size: 0.8rem;
+    }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: #bbb; }
+    .dot.on-g { background: #2a9d8f; }
+    .dot.on-y { background: #e9c46a; }
+    .dot.on-r { background: #e76f51; }
+    .dot.on-pwr { background: #c1121f; }
+    .controls { display: flex; flex-direction: column; gap: 0.5rem; }
+    button.action {
+      appearance: none; border: 1px solid var(--accent); background: var(--accent);
+      color: #fff; padding: 0.55rem 0.75rem; border-radius: 3px;
+      font-size: 0.9rem; cursor: pointer;
+    }
+    button.action.secondary { background: transparent; color: var(--accent); }
+    .log {
+      font-family: ui-monospace, Consolas, monospace; font-size: 0.75rem;
+      background: #1a1a1a; color: #d8e2dc; padding: 0.65rem;
+      border-radius: 3px; max-height: 220px; overflow: auto; white-space: pre-wrap;
+    }
+    .verdict { font-size: 0.85rem; }
+    .verdict strong { color: var(--ok); }
+    .verdict .bad { color: var(--wire-hot); }
+    table.pins { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+    table.pins th, table.pins td {
+      border-bottom: 1px solid #e4e0d6; text-align: left; padding: 0.3rem 0.2rem;
+    }
+    footer { padding: 0 1.25rem 1.25rem; color: var(--muted); font-size: 0.8rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Panel circuit simulator — ESP32-S3 Call Station</h1>
+    <p>
+      Clean schematic: wires meet <strong>pins on box edges</strong> (no crossing through boxes).
+      <strong>White</strong> = power latch. <strong>Blue</strong> = latching Task-14 switch
+      (press → CLOSED, press again → OPEN). GPIO is 3.3V only — never 5V on the blue switch.
+    </p>
+  </header>
+
+  <div class="layout">
+    <div class="schematic-wrap">
+      <!--
+        Layout grid (viewBox 0..1000 x 0..700):
+        Row1 y≈40–160: Battery | White | Buck | ESP
+        Mid  y≈200–320: Blue button (left), vertical bus channel (right of blue → ESP left pins)
+        Rail y=380: common GND
+        Row2 y≈420–620: rings | status | note
+        Right edge x=960: vertical signal bus for LED+ and status IN (outside ESP box)
+      -->
+      <svg class="schematic" viewBox="0 0 1000 720" role="img" aria-label="Panel schematic">
+        <!-- ===== WIRES (behind boxes) — each path ends exactly on a pin dot ===== -->
+        <g id="wires">
+          <path id="wBatToWhite" class="wire hot open" d="M130 72 H170" />
+          <path id="wWhiteToBuck" class="wire hot open" d="M320 72 H360" />
+          <path id="wBatNeg" class="wire gnd" d="M130 112 H155 V178 H360 V112" />
+          <path id="wBuck5v" class="wire hot open" d="M510 72 H560" />
+          <path id="wBuckGnd" class="wire gnd" d="M510 122 H532 V385" />
+          <path id="wEspGnd" class="wire gnd" d="M560 122 H542 V385" />
+          <path id="wBlueGpio" class="wire open" d="M370 312 H538 V98 H560" />
+          <path id="wBlueGnd" class="wire gnd" d="M210 360 V385" />
+          <line class="wire gnd" x1="40" y1="385" x2="960" y2="385" />
+          <path id="wRingW" class="wire open" d="M110 430 V395 H960 V145 H880" />
+          <path class="wire gnd" d="M90 525 V385" />
+          <path id="wRingB" class="wire open" d="M270 430 V398 H950 V165 H880" />
+          <path class="wire gnd" d="M250 525 V385" />
+          <path id="wLedG" class="wire open" d="M640 468 H940 V185 H880" />
+          <path id="wLedY" class="wire open" d="M640 508 H930 V205 H880" />
+          <path id="wLedR" class="wire open" d="M640 548 H920 V225 H880" />
+          <path class="wire gnd" d="M510 615 V385" />
+        </g>
+
+        <!-- ===== BATTERY ===== -->
+        <rect class="box" x="30" y="40" width="100" height="88" rx="3" />
+        <text class="box-title" x="44" y="62">Battery</text>
+        <circle class="pin" cx="130" cy="72" r="4.5" />
+        <text class="pin-label" x="108" y="76">B+</text>
+        <circle class="pin" cx="130" cy="112" r="4.5" />
+        <text class="pin-label" x="108" y="116">B−</text>
+
+        <!-- ===== WHITE power latch ===== -->
+        <rect class="box clickable" id="hitWhite" x="170" y="35" width="150" height="132" rx="3" tabindex="0" />
+        <!-- text zone -->
+        <text class="box-title" x="182" y="54">WHITE button</text>
+        <text class="small" x="182" y="70">Power latch · 1NO</text>
+        <text class="label" id="whiteState" x="182" y="88">OPEN — power OFF</text>
+        <text class="small" x="182" y="104">click box to toggle latch</text>
+        <line class="box-zone-line" x1="178" y1="112" x2="312" y2="112" />
+        <!-- switch zone (bottom half only) -->
+        <text class="small" x="182" y="126">1NO contacts</text>
+        <circle class="sw-dot" cx="215" cy="140" r="3.5" />
+        <circle class="sw-dot" cx="295" cy="140" r="3.5" />
+        <line id="swWhiteArm" class="sw-arm" x1="215" y1="140" x2="258" y2="124" />
+        <!-- top-edge power pins (separate from switch drawing) -->
+        <circle class="pin" cx="170" cy="72" r="4.5" />
+        <text class="pin-outside" x="138" y="76">IN</text>
+        <circle class="pin" cx="320" cy="72" r="4.5" />
+        <text class="pin-outside" x="326" y="76">OUT</text>
+
+        <!-- ===== BUCK ===== -->
+        <rect class="box" x="360" y="40" width="150" height="98" rx="3" />
+        <text class="box-title" x="374" y="62">Buck 5V</text>
+        <circle class="pin" cx="360" cy="72" r="4.5" />
+        <text class="pin-label" x="338" y="76">IN+</text>
+        <circle class="pin" cx="360" cy="112" r="4.5" />
+        <text class="pin-label" x="338" y="116">IN−</text>
+        <circle class="pin" cx="510" cy="72" r="4.5" />
+        <text class="pin-label" x="492" y="68">OUT+</text>
+        <circle class="pin" cx="510" cy="122" r="4.5" />
+        <text class="pin-label" x="492" y="126">OUT−</text>
+
+        <!-- ===== ESP32-S3 ===== -->
+        <rect class="box" x="560" y="30" width="320" height="218" rx="3" />
+        <text class="box-title" x="578" y="52">ESP32-S3</text>
+        <text class="small" x="578" y="68">GPIO = 3.3V only</text>
+        <!-- left edge pins -->
+        <circle class="pin" cx="560" cy="72" r="4.5" />
+        <text class="pin-label" x="568" y="76">5V</text>
+        <circle class="pin" cx="560" cy="98" r="4.5" />
+        <text class="pin-label" x="568" y="102">GPIO7</text>
+        <circle class="pin" cx="560" cy="122" r="4.5" />
+        <text class="pin-label" x="568" y="126">GND</text>
+        <!-- right edge pins -->
+        <circle class="pin" cx="880" cy="145" r="4.5" />
+        <text class="pin-label" x="844" y="149">GPIO13</text>
+        <circle class="pin" cx="880" cy="165" r="4.5" />
+        <text class="pin-label" x="844" y="169">GPIO14</text>
+        <circle class="pin" cx="880" cy="185" r="4.5" />
+        <text class="pin-label" x="844" y="189">GPIO10</text>
+        <circle class="pin" cx="880" cy="205" r="4.5" />
+        <text class="pin-label" x="844" y="209">GPIO11</text>
+        <circle class="pin" cx="880" cy="225" r="4.5" />
+        <text class="pin-label" x="844" y="229">GPIO12</text>
+        <text class="label" x="620" y="120">← blue switch</text>
+        <text class="label" x="620" y="160">→ white LED+</text>
+        <text class="label" x="620" y="180">→ blue LED+</text>
+        <text class="label" x="620" y="200">→ Green IN</text>
+
+        <!-- ===== BLUE latching Task-14 ===== -->
+        <rect class="box clickable" id="hitBlue" x="170" y="188" width="200" height="172" rx="3" tabindex="0" />
+        <!-- text zone (top) -->
+        <text class="box-title" x="182" y="210">BLUE button</text>
+        <text class="small" x="182" y="226">Latching Task-14 · 1NO</text>
+        <text class="label" id="blueState" x="182" y="246">State: OPEN</text>
+        <text class="small" x="182" y="262">1st press → CLOSED (start Task-14)</text>
+        <text class="small" x="182" y="276">2nd press → OPEN (stop)</text>
+        <line class="box-zone-line" x1="178" y1="286" x2="362" y2="286" />
+        <!-- switch zone (bottom) — no text here -->
+        <circle class="sw-dot" cx="228" cy="318" r="3.5" />
+        <circle class="sw-dot" cx="308" cy="318" r="3.5" />
+        <line id="swBlueArm" class="sw-arm" x1="228" y1="318" x2="262" y2="302" />
+        <!-- internal guides stay inside switch zone -->
+        <path d="M228 318 V350 H210" fill="none" stroke="#c4bdb0" stroke-width="1.2" stroke-dasharray="4 3" />
+        <path d="M308 318 H358 V312 H370" fill="none" stroke="#c4bdb0" stroke-width="1.2" stroke-dasharray="4 3" />
+        <!-- edge pins -->
+        <circle class="pin" cx="210" cy="360" r="4.5" />
+        <text class="pin-outside" x="178" y="364">GND</text>
+        <circle class="pin" cx="370" cy="312" r="4.5" />
+        <text class="pin-outside" x="376" y="308">GPIO7</text>
+
+        <text class="label" x="40" y="375">COMMON GND rail  (= ESP GND · LED− · status VCC · blue switch return)</text>
+
+        <!-- ===== White ring ===== -->
+        <rect class="box" x="40" y="430" width="140" height="95" rx="3" />
+        <text class="box-title" x="54" y="454">White ring</text>
+        <circle id="ringWhite" class="led-off" cx="110" cy="478" r="12" />
+        <text class="small" x="54" y="502">LED inside module</text>
+        <circle class="pin" cx="110" cy="430" r="4.5" />
+        <text class="pin-label" x="96" y="424">LED+</text>
+        <circle class="pin" cx="90" cy="525" r="4.5" />
+        <text class="pin-label" x="68" y="520">LED−</text>
+
+        <!-- ===== Blue ring ===== -->
+        <rect class="box" x="200" y="430" width="140" height="95" rx="3" />
+        <text class="box-title" x="214" y="454">Blue ring</text>
+        <circle id="ringBlue" class="led-off" cx="270" cy="478" r="12" />
+        <text class="small" x="214" y="502">LED inside module</text>
+        <circle class="pin" cx="270" cy="430" r="4.5" />
+        <text class="pin-label" x="256" y="424">LED+</text>
+        <circle class="pin" cx="250" cy="525" r="4.5" />
+        <text class="pin-label" x="228" y="520">LED−</text>
+
+        <!-- ===== Status modules ===== -->
+        <rect class="box" x="380" y="430" width="270" height="185" rx="3" />
+        <text class="box-title" x="396" y="454">Status modules</text>
+        <text class="label" x="396" y="478">Green</text>
+        <circle id="ledG" class="led-off" cx="560" cy="474" r="13" />
+        <text class="label" x="396" y="518">Yellow</text>
+        <circle id="ledY" class="led-off" cx="560" cy="514" r="13" />
+        <text class="label" x="396" y="558">Red</text>
+        <circle id="ledR" class="led-off" cx="560" cy="554" r="13" />
+        <text class="small" x="396" y="592">VCC → common GND (bottom pin)</text>
+        <circle class="pin" cx="640" cy="468" r="4.5" />
+        <text class="pin-label" x="646" y="472">IN</text>
+        <circle class="pin" cx="640" cy="508" r="4.5" />
+        <text class="pin-label" x="646" y="512">IN</text>
+        <circle class="pin" cx="640" cy="548" r="4.5" />
+        <text class="pin-label" x="646" y="552">IN</text>
+        <circle class="pin" cx="510" cy="615" r="4.5" />
+        <text class="pin-label" x="484" y="610">VCC→GND</text>
+
+        <!-- ===== Short-circuit note ===== -->
+        <rect class="box" x="680" y="430" width="280" height="140" rx="3" />
+        <text class="box-title" x="696" y="454">Short-circuit check</text>
+        <text class="label" id="shortMsg" x="696" y="480">Blue OPEN — no switch current</text>
+        <text class="small" id="shortDetail" x="696" y="504">Latch CLOSED = GPIO7↔GND only</text>
+        <text class="small" x="696" y="528">Safe µA pull-up — not VCC short</text>
+        <text class="small" x="696" y="552">White path = battery current only</text>
+      </svg>
+    </div>
+
+    <div class="side">
+      <div class="card">
+        <h2>Live state</h2>
+        <div class="status-row">
+          <span class="pill"><span class="dot" id="dotPwr"></span> Power</span>
+          <span class="pill"><span class="dot" id="dotBlue"></span> Blue latch</span>
+          <span class="pill"><span class="dot" id="dotG"></span> Green</span>
+          <span class="pill"><span class="dot" id="dotY"></span> Yellow</span>
+          <span class="pill"><span class="dot" id="dotR"></span> Red</span>
+        </div>
+        <p class="verdict" id="phaseText">Phase: idle — latch White ON, then latch Blue CLOSED for Task-14.</p>
+        <div class="controls">
+          <button class="action" type="button" id="btnWhite">Toggle White (power latch)</button>
+          <button class="action" type="button" id="btnBlue">Toggle Blue (Task-14 latch)</button>
+          <button class="action secondary" type="button" id="btnReset">Reset LEDs only</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Blue = latching switch</h2>
+        <p class="verdict" style="margin:0; font-size:0.85rem;">
+          <strong>Press 1</strong> → contacts <strong>CLOSED</strong> (GPIO7 LOW) → Task-14 starts.<br />
+          <strong>Press 2</strong> → contacts <strong>OPEN</strong> (GPIO7 HIGH) → sequence stops.<br />
+          Stays latched until you press again (not momentary).
+        </p>
+      </div>
+
+      <div class="card">
+        <h2>Task-14 (while Blue CLOSED)</h2>
+        <ol style="margin:0; padding-left:1.1rem; font-size:0.85rem;">
+          <li>Green ON — AMR starts from home</li>
+          <li>Yellow ON — go to p2 pick pallet</li>
+          <li>Red ON — returning home</li>
+          <li>All OFF — done (Blue can stay CLOSED until you open it)</li>
+        </ol>
+      </div>
+
+      <div class="card">
+        <h2>Mentor: 10k / 15k?</h2>
+        <p class="verdict">
+          <strong>Blue:</strong> no series resistor (GPIO↔GND).<br />
+          <span class="bad">Do not</span> wire 5V→switch→GPIO.<br />
+          <strong>White:</strong> no 10k on battery path.
+        </p>
+      </div>
+
+      <div class="card">
+        <h2>Pin table</h2>
+        <table class="pins">
+          <thead><tr><th>Net</th><th>Connects</th></tr></thead>
+          <tbody>
+            <tr><td>White SW</td><td>B+ ↔ Buck IN+</td></tr>
+            <tr><td>Blue SW</td><td>GPIO7 ↔ GND</td></tr>
+            <tr><td>White / Blue LED+</td><td>GPIO13 / 14</td></tr>
+            <tr><td>G / Y / R IN</td><td>GPIO10 / 11 / 12</td></tr>
+            <tr><td>Status VCC</td><td>common GND</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h2>Event log</h2>
+        <div class="log" id="log"></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <code>call_station/panel_circuit_sim/index.html</code> — teaching schematic (not SPICE). Refresh the page after edits.
+  </footer>
+
+  <script>
+    const state = {
+      whiteOn: false,
+      blueClosed: false, // latching: true = contacts closed
+      phase: "idle",
+      timers: [],
+    };
+
+    const el = (id) => document.getElementById(id);
+
+    function log(msg) {
+      const box = el("log");
+      const t = new Date().toLocaleTimeString();
+      box.textContent = `[${t}] ${msg}\n` + box.textContent;
+    }
+
+    function clearTimers() {
+      state.timers.forEach(clearTimeout);
+      state.timers = [];
+    }
+
+    function setWire(id, closed, hot) {
+      const w = el(id);
+      w.classList.toggle("closed", closed);
+      w.classList.toggle("open", !closed);
+      w.classList.toggle("hot", !!hot && closed);
+    }
+
+    function setLed(which, on) {
+      const map = {
+        g: ["ledG", "dotG", "led-glow-g", "on-g", "wLedG"],
+        y: ["ledY", "dotY", "led-glow-y", "on-y", "wLedY"],
+        r: ["ledR", "dotR", "led-glow-r", "on-r", "wLedR"],
+      };
+      const [led, dot, glow, onCls, wire] = map[which];
+      el(led).setAttribute("class", on ? glow : "led-off");
+      el(dot).className = "dot" + (on ? " " + onCls : "");
+      setWire(wire, on, on);
+    }
+
+    function setRing(white, blue) {
+      el("ringWhite").setAttribute("class", white ? "led-glow-y" : "led-off");
+      el("ringBlue").setAttribute("class", blue ? "led-glow-y" : "led-off");
+      setWire("wRingW", white, white);
+      setWire("wRingB", blue, blue);
+    }
+
+    function setPowerWires(on) {
+      setWire("wBatToWhite", on, on);
+      setWire("wWhiteToBuck", on, on);
+      setWire("wBuck5v", on, on);
+      el("swWhiteArm").setAttribute("y2", on ? "140" : "124");
+      el("swWhiteArm").setAttribute("x2", on ? "295" : "258");
+      el("whiteState").textContent = on ? "CLOSED — power ON" : "OPEN — power OFF";
+      el("dotPwr").className = "dot" + (on ? " on-pwr" : "");
+    }
+
+    function setBlueWires(closed) {
+      setWire("wBlueGpio", closed, closed);
+      el("swBlueArm").setAttribute("y2", closed ? "318" : "302");
+      el("swBlueArm").setAttribute("x2", closed ? "308" : "262");
+      el("blueState").textContent = closed
+        ? "State: CLOSED (GPIO7 LOW)"
+        : "State: OPEN (GPIO7 HIGH)";
+      el("dotBlue").className = "dot" + (closed ? " on-pwr" : "");
+      el("shortMsg").textContent = closed
+        ? "Blue CLOSED: GPIO7 ↔ common GND"
+        : "Blue OPEN — no switch current";
+      el("shortDetail").textContent = closed
+        ? "Safe — pull-up µA only, not VCC short"
+        : "Press again to CLOSE (latch ON)";
+    }
+
+    function allStatusOff() {
+      setLed("g", false);
+      setLed("y", false);
+      setLed("r", false);
+    }
+
+    function runTask14() {
+      clearTimers();
+      if (!state.whiteOn) {
+        log("Blue latched but White power OPEN — ESP would be off");
+        el("phaseText").textContent = "Phase: blocked — close White power first";
+        return;
+      }
+      state.phase = "green";
+      allStatusOff();
+      setLed("g", true);
+      setRing(true, true);
+      el("phaseText").textContent = "Phase 1: Green ON — AMR starting from home";
+      log("Task-14 start: Green ON (leave home)");
+
+      state.timers.push(setTimeout(() => {
+        if (!state.blueClosed) return;
+        setLed("g", false);
+        setLed("y", true);
+        state.phase = "yellow";
+        el("phaseText").textContent = "Phase 2: Yellow ON — go to p2 pick pallet";
+        log("Task-14: Yellow ON (p2 pick)");
+      }, 1800));
+
+      state.timers.push(setTimeout(() => {
+        if (!state.blueClosed) return;
+        setLed("y", false);
+        setLed("r", true);
+        state.phase = "red";
+        el("phaseText").textContent = "Phase 3: Red ON — returning home";
+        log("Task-14: Red ON (return home)");
+      }, 3600));
+
+      state.timers.push(setTimeout(() => {
+        if (!state.blueClosed) return;
+        setLed("r", false);
+        setRing(true, true); // blue stays latched CLOSED — ring can stay on
+        state.phase = "done";
+        el("phaseText").textContent =
+          "Phase 4: Red OFF — Task-14 done (Blue still CLOSED until you press again)";
+        log("Task-14 complete — Blue latch still CLOSED (press Blue to OPEN)");
+      }, 5400));
+    }
+
+    function stopTask14(reason) {
+      clearTimers();
+      allStatusOff();
+      setRing(state.whiteOn, state.blueClosed);
+      state.phase = state.whiteOn ? "powered" : "idle";
+      el("phaseText").textContent = reason;
+    }
+
+    function toggleWhite() {
+      state.whiteOn = !state.whiteOn;
+      setPowerWires(state.whiteOn);
+      if (!state.whiteOn) {
+        // power loss: force blue open visually? keep latch state but ESP off
+        clearTimers();
+        allStatusOff();
+        setRing(false, false);
+        state.phase = "idle";
+        el("phaseText").textContent = "Phase: idle — White OPEN (power OFF)";
+        log("White OPEN — battery→buck path open");
+      } else {
+        setRing(true, state.blueClosed);
+        el("phaseText").textContent = state.blueClosed
+          ? "Phase: powered + Blue CLOSED — running / ready"
+          : "Phase: powered — press Blue to CLOSE latch (Task-14)";
+        log("White CLOSED — B+ → buck → ESP 5V");
+        if (state.blueClosed) runTask14();
+      }
+    }
+
+    /** Latching blue: each press toggles OPEN ↔ CLOSED */
+    function toggleBlue() {
+      state.blueClosed = !state.blueClosed;
+      setBlueWires(state.blueClosed);
+      setRing(state.whiteOn, state.blueClosed);
+
+      if (state.blueClosed) {
+        log("Blue LATCH CLOSED — GPIO7→GND (press again to OPEN)");
+        runTask14();
+      } else {
+        log("Blue LATCH OPEN — GPIO7 HIGH (press again to CLOSE)");
+        stopTask14("Phase: Blue OPEN — Task-14 stopped / idle");
+      }
+    }
+
+    function resetSeq() {
+      clearTimers();
+      allStatusOff();
+      // do not force blue open — latch stays; only clear LED sequence
+      state.phase = state.whiteOn
+        ? (state.blueClosed ? "done" : "powered")
+        : "idle";
+      setRing(state.whiteOn, state.blueClosed);
+      el("phaseText").textContent = "LEDs cleared — Blue latch unchanged";
+      log("LED sequence reset (latch states kept)");
+    }
+
+    el("btnWhite").addEventListener("click", toggleWhite);
+    el("btnBlue").addEventListener("click", toggleBlue);
+    el("btnReset").addEventListener("click", resetSeq);
+    el("hitWhite").addEventListener("click", toggleWhite);
+    el("hitBlue").addEventListener("click", toggleBlue);
+
+    setPowerWires(false);
+    setBlueWires(false);
+    allStatusOff();
+    setRing(false, false);
+    log("Ready — White = power latch, Blue = Task-14 latch (CLOSED↔OPEN)");
+  </script>
+</body>
+</html>

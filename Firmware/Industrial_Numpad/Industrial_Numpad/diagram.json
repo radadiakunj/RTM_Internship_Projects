@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "author": "Industrial Numpad",
+  "editor": "wokwi",
+  "parts": [
+    {
+      "type": "board-esp32-devkit-v1",
+      "id": "esp",
+      "top": 0,
+      "left": 0,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-membrane-keypad",
+      "id": "keypad1",
+      "top": -28.4,
+      "left": 246.4,
+      "attrs": {
+        "keys": [
+          "1", "2", "3", "Ent",
+          "4", "5", "6", "Esc",
+          "7", "8", "9", "PgU",
+          "BS", "0", "Clr", "PgD"
+        ]
+      }
+    },
+    {
+      "type": "wokwi-lcd1602",
+      "id": "lcd1",
+      "top": 294.4,
+      "left": -22.4,
+      "attrs": {
+        "pins": "i2c",
+        "background": "blue",
+        "color": "white"
+      }
+    }
+  ],
+  "connections": [
+    [ "esp:TX", "$serialMonitor:RX", "", [] ],
+    [ "esp:RX", "$serialMonitor:TX", "", [] ],
+
+    [ "esp:21", "lcd1:SDA", "green", [ "h-28.8", "v182.4" ] ],
+    [ "esp:22", "lcd1:SCL", "blue", [ "h-38.4", "v163.2" ] ],
+    [ "esp:3V3", "lcd1:VCC", "red", [ "h-48", "v220.8" ] ],
+    [ "esp:GND.1", "lcd1:GND", "black", [ "h-57.6", "v211.2" ] ],
+
+    [ "esp:19", "keypad1:R1", "green", [ "h86.4", "v-57.6" ] ],
+    [ "esp:18", "keypad1:R2", "green", [ "h76.8", "v-38.4" ] ],
+    [ "esp:5", "keypad1:R3", "green", [ "h67.2", "v-19.2" ] ],
+    [ "esp:17", "keypad1:R4", "green", [ "h57.6", "v0" ] ],
+
+    [ "esp:16", "keypad1:C1", "yellow", [ "h48", "v19.2" ] ],
+    [ "esp:4", "keypad1:C2", "yellow", [ "h38.4", "v38.4" ] ],
+    [ "esp:15", "keypad1:C3", "yellow", [ "h28.8", "v57.6" ] ],
+    [ "esp:13", "keypad1:C4", "yellow", [ "h19.2", "v76.8" ] ]
+  ],
+  "dependencies": {}
+}

@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Call Station Firmware Visualizer</title>
+<style>
+  :root {
+    --bg: #10141c;
+    --panel: #171e2a;
+    --line: #2a3548;
+    --text: #e8eef8;
+    --muted: #8b97ab;
+    --accent: #5b8cff;
+    --ok: #3ddc97;
+    --warn: #f0c14a;
+    --err: #ff5c5c;
+    --code: #0c1018;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Cascadia Code", "Segoe UI", system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  header {
+    display: flex; flex-wrap: wrap; gap: .75rem; align-items: center;
+    justify-content: space-between;
+    padding: .9rem 1.2rem; border-bottom: 1px solid var(--line);
+    background: #121826;
+  }
+  h1 { margin: 0; font-size: 1.05rem; font-weight: 650; }
+  .sub { color: var(--muted); font-size: .82rem; }
+  .toolbar { display: flex; flex-wrap: wrap; gap: .45rem; }
+  button, select {
+    border: 1px solid var(--line); background: #1c2638; color: var(--text);
+    border-radius: 8px; padding: .45rem .7rem; cursor: pointer; font: inherit;
+  }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: #243a28; border-color: #3a6; }
+  button.danger { background: #3a1e22; border-color: #844; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  .layout {
+    display: grid;
+    grid-template-columns: 1.1fr 1fr 1.1fr;
+    gap: .85rem; padding: .85rem;
+  }
+  @media (max-width: 1100px) { .layout { grid-template-columns: 1fr; } }
+  .card {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 12px; padding: .85rem; min-height: 0;
+  }
+  .card h2 {
+    margin: 0 0 .65rem; font-size: .78rem; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--muted); font-weight: 600;
+  }
+  .board {
+    background: #0e1320; border: 1px solid #31405c; border-radius: 10px;
+    padding: 1rem; position: relative;
+  }
+  .chip {
+    margin: 0 auto .8rem; width: 70%; max-width: 280px;
+    background: linear-gradient(180deg, #1a2030, #121722);
+    border: 2px solid #3d4d6b; border-radius: 8px; padding: .7rem;
+    text-align: center; font-size: .78rem; color: var(--muted);
+  }
+  .chip strong { display: block; color: var(--text); font-size: .95rem; margin-bottom: .2rem; }
+  .row { display: flex; gap: .6rem; flex-wrap: wrap; justify-content: center; margin: .55rem 0; }
+  .btn-hw {
+    width: 72px; height: 72px; border-radius: 50%;
+    border: 3px solid #555; display: grid; place-items: center;
+    font-size: .68rem; font-weight: 700; user-select: none;
+    box-shadow: inset 0 0 0 6px #222;
+  }
+  .btn-hw.white { background: #f3f5f8; color: #222; }
+  .btn-hw.blue { background: #2f6fd6; color: #fff; border-color: #1d4b96; }
+  .btn-hw:active, .btn-hw.pressed { transform: scale(.94); filter: brightness(.85); }
+  .led {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: #222; border: 2px solid #444; position: relative;
+  }
+  .led span {
+    position: absolute; left: 50%; top: 110%; transform: translateX(-50%);
+    font-size: .62rem; color: var(--muted); white-space: nowrap;
+  }
+  .led.on-r { background: var(--err); box-shadow: 0 0 16px var(--err); border-color: #faa; }
+  .led.on-y { background: var(--warn); box-shadow: 0 0 16px var(--warn); border-color: #fe8; }
+  .led.on-g { background: var(--ok); box-shadow: 0 0 16px var(--ok); border-color: #afa; }
+  .led.on-w { background: #f7f9fc; box-shadow: 0 0 16px #fff; border-color: #fff; }
+  .led.on-b { background: #4da3ff; box-shadow: 0 0 16px #4da3ff; border-color: #9cf; }
+  .dip {
+    width: 54px; height: 22px; border-radius: 4px; border: 1px solid #555;
+    background: #111; display: flex; overflow: hidden;
+  }
+  .dip i { flex: 1; background: #222; }
+  .dip.on-r i:nth-child(1) { background: var(--err); }
+  .dip.on-g i:nth-child(2) { background: var(--ok); }
+  .dip.on-b i:nth-child(3) { background: #4da3ff; }
+  .dip.on-w i { background: #eee; }
+  .pins {
+    display: grid; grid-template-columns: 1fr 1fr; gap: .25rem .6rem;
+    font-size: .72rem; margin-top: .7rem; color: var(--muted);
+  }
+  .pins b { color: var(--text); font-weight: 600; }
+  .hi { color: var(--ok); }
+  .lo { color: var(--err); }
+  .serial, .mqtt, .code {
+    font-family: ui-monospace, Consolas, monospace;
+    font-size: .72rem; background: var(--code); border-radius: 8px;
+    border: 1px solid #243044; height: 320px; overflow: auto; padding: .55rem .65rem;
+    white-space: pre-wrap; word-break: break-word;
+  }
+  .mqtt .pub { color: #7dd3fc; }
+  .mqtt .sub { color: #c4b5fd; }
+  .code .fn { color: #93c5fd; }
+  .code .active {
+    background: #1e3a5f; outline: 1px solid var(--accent);
+    display: block; margin: 0 -.35rem; padding: 0 .35rem; border-radius: 4px;
+  }
+  .status-bar {
+    display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: .6rem;
+  }
+  .pill {
+    font-size: .72rem; padding: .2rem .5rem; border-radius: 999px;
+    border: 1px solid var(--line); color: var(--muted);
+  }
+  .pill.on { color: var(--ok); border-color: #2a6; }
+  .pill.off { color: var(--err); border-color: #833; }
+  .pill.phase { color: #fde68a; border-color: #856; }
+  .flow {
+    display: flex; flex-wrap: wrap; gap: .35rem; align-items: center;
+    font-size: .72rem; color: var(--muted); margin-top: .5rem;
+  }
+  .flow .step {
+    padding: .2rem .45rem; border-radius: 6px; border: 1px solid var(--line);
+  }
+  .flow .step.now { background: #1e3a5f; color: var(--text); border-color: var(--accent); }
+  footer {
+    padding: .6rem 1.2rem 1rem; color: var(--muted); font-size: .75rem;
+    border-top: 1px solid var(--line);
+  }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Call Station Firmware Visualizer</h1>
+    <div class="sub">Simulates <code>call_station_esp32s3.ino</code> — buttons, LEDs, MQTT, Serial</div>
+  </div>
+  <div class="toolbar">
+    <button id="btnBoot" class="primary">▶ Boot / Reset</button>
+    <button id="btnDemoJob">Auto-demo job (bridge LED phases)</button>
+    <button id="btnFailMqtt" class="danger">Simulate MQTT fail</button>
+    <button id="btnClear">Clear logs</button>
+    <label class="sub">Speed
+      <select id="speed">
+        <option value="1">1×</option>
+        <option value="2" selected>2×</option>
+        <option value="4">4×</option>
+      </select>
+    </label>
+  </div>
+</header>
+
+<div class="layout">
+  <section class="card">
+    <h2>Hardware view (ESP32-S3)</h2>
+    <div class="status-bar">
+      <span class="pill" id="pWifi">WiFi OFF</span>
+      <span class="pill" id="pMqtt">MQTT OFF</span>
+      <span class="pill phase" id="pPhase">phase: —</span>
+      <span class="pill" id="pFn">fn: setup()</span>
+    </div>
+    <div class="board">
+      <div class="chip">
+        <strong>ESP32-S3 DevKit-N16R8</strong>
+        call_station_esp32s3.ino
+      </div>
+      <div class="row">
+        <div class="btn-hw white" id="hwWhite" title="GPIO4">WHITE<br/>START</div>
+        <div class="btn-hw blue" id="hwBlue" title="GPIO5">BLUE<br/>HOME</div>
+      </div>
+      <div class="row" id="leds">
+        <div class="led" id="ledR"><span>RED 6</span></div>
+        <div class="led" id="ledY"><span>YEL 7</span></div>
+        <div class="led" id="ledG"><span>GRN 8</span></div>
+        <div class="led" id="ledW"><span>WHT 9</span></div>
+        <div class="led" id="ledB"><span>BLU 10</span></div>
+      </div>
+      <div class="row" style="margin-top:1.4rem">
+        <div>
+          <div class="sub" style="text-align:center;margin-bottom:.25rem">DIP RGB</div>
+          <div class="dip" id="dip"><i></i><i></i><i></i></div>
+        </div>
+      </div>
+      <div class="pins" id="gpioList"></div>
+      <div class="flow" id="flowSteps">
+        <span class="step" data-p="connecting">connecting</span>→
+        <span class="step" data-p="idle">idle</span>→
+        <span class="step" data-p="to_pick">to_pick</span>→
+        <span class="step" data-p="lifting">lifting</span>→
+        <span class="step" data-p="to_drop">to_drop</span>→
+        <span class="step" data-p="to_home">to_home</span>→
+        <span class="step" data-p="done">done</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Active code path</h2>
+    <div class="code" id="codeView"></div>
+  </section>
+
+  <section class="card">
+    <h2>Serial Monitor + MQTT bus</h2>
+    <div class="serial" id="serial"></div>
+    <h2 style="margin-top:.7rem">MQTT traffic</h2>
+    <div class="mqtt" id="mqtt"></div>
+  </section>
+</div>
+
+<footer>
+  Mirrors <code>applyPhase()</code>, button edges, WiFi/MQTT boot, and <code>run_job</code>/<code>go_home</code> publishes.
+  Bridge LED replies are simulated here so you can see Green→White→Blue without hardware.
+  Real AMR practice: <a href="../bridge/call_station_dashboard.py">bridge dashboard</a> ·
+  Circuit: <a href="../CIRCUIT.md">CIRCUIT.md</a> ·
+  Also: Wokwi folder <code>../wokwi/</code>
+</footer>
+
+<script>
+/* ===== Firmware-faithful simulator ===== */
+const CFG = {
+  STATION_ID: "home1",
+  WIFI_SSID: "YOUR_WIFI_SSID",
+  MQTT_HOST: "192.168.5.117",
+  MQTT_PORT: 1883,
+  POINT_HOME: "Home",
+  POINT_PICK: "A",
+  POINT_DROP: "D",
+};
+
+const PINS = {
+  BTN_WHITE: 4, BTN_BLUE: 5,
+  LED_RED: 6, LED_YELLOW: 7, LED_GREEN: 8, LED_WHITE: 9, LED_BLUE: 10,
+  DIP_R: 11, DIP_G: 12, DIP_B: 13,
+};
+
+const CODE_BLOCKS = [
+  { id: "setup", title: "setup()", lines: [
+    "Serial.begin(115200);",
+    'topicCmd = "floor/callstation/" + STATION_ID + "/cmd";',
+    "setupPins(); applyPhase(\"connecting\");",
+    "WiFi.mode(WIFI_STA); mqtt.setServer(...);",
+  ]},
+  { id: "ensureWifi", title: "ensureWifi()", lines: [
+    "if (WiFi.status() == WL_CONNECTED) return true;",
+    "applyPhase(\"connecting\");",
+    "WiFi.begin(WIFI_SSID, WIFI_PASSWORD);",
+  ]},
+  { id: "ensureMqtt", title: "ensureMqtt()", lines: [
+    "mqtt.connect(clientId);",
+    "mqtt.subscribe(topicLeds);",
+    "applyPhase(\"idle\"); publishStationStatus(\"online\");",
+  ]},
+  { id: "readButtons", title: "readButtons()", lines: [
+    "falling edge on GPIO4 → publishCmd(\"run_job\");",
+    "falling edge on GPIO5 → publishCmd(\"go_home\");",
+  ]},
+  { id: "publishCmd", title: "publishCmd()", lines: [
+    "doc[\"cmd\"]=cmd; doc[\"pick\"]=POINT_PICK; ...",
+    "mqtt.publish(topicCmd, json);",
+  ]},
+  { id: "onMqttMessage", title: "onMqttMessage()", lines: [
+    "phase = doc[\"phase\"];",
+    "applyPhase(phase);",
+  ]},
+  { id: "applyPhase", title: "applyPhase()", lines: [
+    "idle→YEL | to_pick/lifting→GRN | to_drop→WHT",
+    "to_home→BLU | error→RED | done→GRN",
+  ]},
+  { id: "loop", title: "loop()", lines: [
+    "ensureWifi(); ensureMqtt();",
+    "mqtt.loop(); readButtons();",
+    "every 4s publish heartbeat",
+  ]},
+];
+
+const state = {
+  wifi: false,
+  mqtt: false,
+  mqttFail: false,
+  phase: "connecting",
+  fn: "setup",
+  gpio: {},
+  btnWhite: false,
+  btnBlue: false,
+  demoTimer: null,
+  bootTimer: null,
+  hbTimer: null,
+};
+
+function el(id){ return document.getElementById(id); }
+function speed(){ return Number(el("speed").value) || 1; }
+function wait(ms){ return new Promise(r => setTimeout(r, ms / speed())); }
+
+function logSerial(line){
+  const s = el("serial");
+  s.textContent += line + "\n";
+  s.scrollTop = s.scrollHeight;
+}
+function logMqtt(dir, topic, payload){
+  const m = el("mqtt");
+  const cls = dir === "PUB" ? "pub" : "sub";
+  m.innerHTML += `<div class="${cls}">${dir} ${topic}\n  ${payload}</div>`;
+  m.scrollTop = m.scrollHeight;
+}
+
+function setFn(id){
+  state.fn = id;
+  el("pFn").textContent = "fn: " + (CODE_BLOCKS.find(b=>b.id===id)?.title || id);
+  renderCode();
+}
+
+function renderCode(){
+  el("codeView").innerHTML = CODE_BLOCKS.map(b => {
+    const active = b.id === state.fn ? "active" : "";
+    return `<div class="${active}"><span class="fn">${b.title}</span>\n  ${b.lines.join("\n  ")}\n</div>`;
+  }).join("\n");
+}
+
+function applyPhase(phase){
+  setFn("applyPhase");
+  state.phase = phase || "idle";
+  const map = {
+    idle:          {r:0,y:1,g:0,w:0,b:0, dr:0,dg:0,db:0, dw:0},
+    connecting:    {r:0,y:1,g:0,w:0,b:0, dr:0,dg:1,db:1, dw:0},
+    to_pick:       {r:0,y:0,g:1,w:0,b:0, dr:0,dg:1,db:0, dw:0},
+    lifting:       {r:0,y:0,g:1,w:0,b:0, dr:0,dg:1,db:0, dw:0},
+    to_drop:       {r:0,y:0,g:0,w:1,b:0, dr:1,dg:1,db:1, dw:1},
+    placing:       {r:0,y:0,g:0,w:1,b:0, dr:1,dg:1,db:1, dw:1},
+    to_home:       {r:0,y:0,g:0,w:0,b:1, dr:0,dg:0,db:1, dw:0},
+    done:          {r:0,y:0,g:1,w:0,b:0, dr:0,dg:1,db:0, dw:0},
+    error:         {r:1,y:0,g:0,w:0,b:0, dr:1,dg:0,db:0, dw:0},
+  };
+  const s = map[phase] || map.idle;
+  state.gpio[PINS.LED_RED]=s.r; state.gpio[PINS.LED_YELLOW]=s.y;
+  state.gpio[PINS.LED_GREEN]=s.g; state.gpio[PINS.LED_WHITE]=s.w; state.gpio[PINS.LED_BLUE]=s.b;
+  state.gpio[PINS.DIP_R]=s.dr; state.gpio[PINS.DIP_G]=s.dg; state.gpio[PINS.DIP_B]=s.db;
+  paint();
+}
+
+function paint(){
+  el("ledR").className = "led" + (state.gpio[PINS.LED_RED]?" on-r":"");
+  el("ledY").className = "led" + (state.gpio[PINS.LED_YELLOW]?" on-y":"");
+  el("ledG").className = "led" + (state.gpio[PINS.LED_GREEN]?" on-g":"");
+  el("ledW").className = "led" + (state.gpio[PINS.LED_WHITE]?" on-w":"");
+  el("ledB").className = "led" + (state.gpio[PINS.LED_BLUE]?" on-b":"");
+  const dip = el("dip");
+  dip.className = "dip"
+    + (state.gpio[PINS.DIP_R]?" on-r":"")
+    + (state.gpio[PINS.DIP_G]?" on-g":"")
+    + (state.gpio[PINS.DIP_B]?" on-b":"");
+  if (state.gpio[PINS.LED_WHITE] && state.gpio[PINS.DIP_R] && state.gpio[PINS.DIP_G] && state.gpio[PINS.DIP_B])
+    dip.classList.add("on-w");
+
+  el("pWifi").textContent = state.wifi ? "WiFi ON" : "WiFi OFF";
+  el("pWifi").className = "pill " + (state.wifi?"on":"off");
+  el("pMqtt").textContent = state.mqtt ? "MQTT ON" : "MQTT OFF";
+  el("pMqtt").className = "pill " + (state.mqtt?"on":"off");
+  el("pPhase").textContent = "phase: " + state.phase;
+
+  document.querySelectorAll("#flowSteps .step").forEach(n=>{
+    n.classList.toggle("now", n.dataset.p === state.phase);
+  });
+
+  const rows = [
+    [PINS.BTN_WHITE, "BTN_WHITE", state.btnWhite?"LOW (pressed)":"HIGH"],
+    [PINS.BTN_BLUE, "BTN_BLUE", state.btnBlue?"LOW (pressed)":"HIGH"],
+    [PINS.LED_RED,"LED_RED", state.gpio[PINS.LED_RED]?"HIGH":"LOW"],
+    [PINS.LED_YELLOW,"LED_YELLOW", state.gpio[PINS.LED_YELLOW]?"HIGH":"LOW"],
+    [PINS.LED_GREEN,"LED_GREEN", state.gpio[PINS.LED_GREEN]?"HIGH":"LOW"],
+    [PINS.LED_WHITE,"LED_WHITE", state.gpio[PINS.LED_WHITE]?"HIGH":"LOW"],
+    [PINS.LED_BLUE,"LED_BLUE", state.gpio[PINS.LED_BLUE]?"HIGH":"LOW"],
+  ];
+  el("gpioList").innerHTML = rows.map(([pin,name,val])=>{
+    const cls = String(val).includes("HIGH") && name.startsWith("LED") && val==="HIGH" ? "hi"
+      : String(val).includes("LOW") && name.startsWith("BTN") && val.startsWith("LOW") ? "lo" : "";
+    return `<div>GPIO${pin} <b>${name}</b></div><div class="${cls}">${val}</div>`;
+  }).join("");
+}
+
+function topics(){
+  const id = CFG.STATION_ID;
+  return {
+    cmd: `floor/callstation/${id}/cmd`,
+    leds: `floor/callstation/${id}/leds`,
+    status: `floor/callstation/${id}/status`,
+    hb: `floor/callstation/${id}/hb`,
+  };
+}
+
+function publishCmd(cmd){
+  setFn("publishCmd");
+  const t = topics();
+  const payload = JSON.stringify({
+    cmd, station: CFG.STATION_ID,
+    home: CFG.POINT_HOME, pick: CFG.POINT_PICK, drop: CFG.POINT_DROP,
+    ts: Math.floor(Date.now()/1000),
+  });
+  logMqtt("PUB", t.cmd, payload);
+  logSerial(`CMD -> ${t.cmd} : ${cmd}`);
+}
+
+function injectLedPhase(phase, reason=""){
+  setFn("onMqttMessage");
+  const t = topics();
+  const payload = JSON.stringify({phase, reason});
+  logMqtt("SUB", t.leds, payload);
+  logSerial(`LED phase: ${phase}`);
+  applyPhase(phase);
+}
+
+async function boot(){
+  clearTimers();
+  state.wifi = false; state.mqtt = false; state.mqttFail = false;
+  el("serial").textContent = ""; el("mqtt").innerHTML = "";
+  setFn("setup");
+  logSerial("Call Station ESP32-S3 starting...");
+  applyPhase("connecting");
+  await wait(400);
+
+  setFn("ensureWifi");
+  logSerial(`WiFi connecting to ${CFG.WIFI_SSID} ...`);
+  await wait(900);
+  state.wifi = true;
+  paint();
+  logSerial("WiFi connected (sim)");
+
+  setFn("ensureMqtt");
+  logSerial(`MQTT connecting ${CFG.MQTT_HOST}:${CFG.MQTT_PORT} ...`);
+  await wait(700);
+  if (state.mqttFail) {
+    logSerial("MQTT failed, state=-2");
+    applyPhase("error");
+    paint();
+    return;
+  }
+  state.mqtt = true;
+  const t = topics();
+  logMqtt("SUB", t.leds, "(subscribe)");
+  logSerial("MQTT connected");
+  applyPhase("idle");
+  const st = JSON.stringify({
+    station: CFG.STATION_ID, state: "online", wifi_rssi: -52,
+    ip: "192.168.5.200", point_home: CFG.POINT_HOME,
+    point_pick: CFG.POINT_PICK, point_drop: CFG.POINT_DROP,
+  });
+  logMqtt("PUB", t.status, st);
+  setFn("loop");
+  paint();
+  startHeartbeat();
+}
+
+function startHeartbeat(){
+  clearInterval(state.hbTimer);
+  state.hbTimer = setInterval(()=>{
+    if (!state.mqtt) return;
+    const t = topics();
+    logMqtt("PUB", t.hb, JSON.stringify({station: CFG.STATION_ID, up_ms: Date.now()%100000}));
+  }, 4000 / speed());
+}
+
+function clearTimers(){
+  clearInterval(state.hbTimer);
+  clearTimeout(state.demoTimer);
+  state.hbTimer = null;
+}
+
+async function pressWhite(){
+  state.btnWhite = true; paint();
+  el("hwWhite").classList.add("pressed");
+  setFn("readButtons");
+  await wait(80);
+  if (!state.mqtt) { applyPhase("error"); logSerial("Button ignored: MQTT offline"); }
+  else {
+    publishCmd("run_job");
+    // Simulated bridge response sequence
+    runBridgeDemo();
+  }
+  state.btnWhite = false; el("hwWhite").classList.remove("pressed"); paint();
+}
+
+async function pressBlue(){
+  state.btnBlue = true; paint();
+  el("hwBlue").classList.add("pressed");
+  setFn("readButtons");
+  await wait(80);
+  if (!state.mqtt) { applyPhase("error"); }
+  else {
+    publishCmd("go_home");
+    injectLedPhase("to_home", "bridge");
+    await wait(1200);
+    injectLedPhase("done");
+    await wait(600);
+    injectLedPhase("idle");
+    setFn("loop");
+  }
+  state.btnBlue = false; el("hwBlue").classList.remove("pressed"); paint();
+}
+
+async function runBridgeDemo(){
+  clearTimeout(state.demoTimer);
+  const steps = [
+    ["to_pick", 1200], ["lifting", 900], ["to_drop", 1200],
+    ["to_home", 1200], ["done", 700], ["idle", 200],
+  ];
+  for (const [ph, ms] of steps) {
+    if (!state.mqtt) return;
+    injectLedPhase(ph, "simulated bridge");
+    await wait(ms);
+  }
+  setFn("loop");
+}
+
+el("btnBoot").onclick = () => boot();
+el("btnDemoJob").onclick = async () => {
+  if (!state.mqtt) await boot();
+  await pressWhite();
+};
+el("btnFailMqtt").onclick = async () => {
+  state.mqttFail = true;
+  await boot();
+};
+el("btnClear").onclick = () => { el("serial").textContent=""; el("mqtt").innerHTML=""; };
+
+el("hwWhite").onmousedown = () => pressWhite();
+el("hwBlue").onmousedown = () => pressBlue();
+
+renderCode();
+applyPhase("connecting");
+paint();
+boot();
+</script>
+</body>
+</html>

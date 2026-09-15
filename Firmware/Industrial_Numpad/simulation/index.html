@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Industrial Numpad — Simulation</title>
+  <style>
+    :root {
+      --bg: #1a1d23;
+      --panel: #252a33;
+      --metal: #3a414d;
+      --lcd-bg: #0a2a6e;
+      --lcd-fg: #e8f0ff;
+      --accent: #f0a500;
+      --wire: #5c6b7a;
+      --ok: #3ecf8e;
+      --text: #d7dde8;
+      --muted: #8b95a8;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", Tahoma, sans-serif;
+      background:
+        radial-gradient(ellipse at 20% 0%, #2a3140 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 100%, #1e2838 0%, transparent 45%),
+        var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px 40px;
+    }
+
+    h1 {
+      margin: 0 0 6px;
+      font-size: 1.35rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    .sub {
+      margin: 0 0 22px;
+      color: var(--muted);
+      font-size: 0.9rem;
+      text-align: center;
+      max-width: 520px;
+    }
+
+    .layout {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 28px;
+      justify-content: center;
+      align-items: flex-start;
+      width: 100%;
+      max-width: 960px;
+    }
+
+    .device {
+      background: linear-gradient(160deg, #323843, #1f242c);
+      border: 1px solid #4a5362;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 12px 40px rgba(0,0,0,.45);
+      width: min(340px, 100%);
+    }
+
+    .lcd {
+      background: var(--lcd-bg);
+      border: 4px solid #1a1a1a;
+      border-radius: 4px;
+      padding: 14px 16px;
+      margin-bottom: 18px;
+      font-family: "Courier New", monospace;
+      font-size: 1.05rem;
+      line-height: 1.45;
+      color: var(--lcd-fg);
+      letter-spacing: 0.08em;
+      box-shadow: inset 0 0 24px rgba(0,0,0,.35);
+      min-height: 72px;
+      white-space: pre;
+    }
+
+    .keypad {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    button.key {
+      appearance: none;
+      border: none;
+      border-radius: 6px;
+      padding: 14px 0;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      background: linear-gradient(180deg, #4a5568, #343b48);
+      color: #f2f4f8;
+      box-shadow: 0 3px 0 #1a1e26, inset 0 1px 0 rgba(255,255,255,.12);
+      transition: transform .05s, filter .1s;
+    }
+    button.key:hover { filter: brightness(1.08); }
+    button.key:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #1a1e26;
+    }
+    button.key.fn {
+      background: linear-gradient(180deg, #5a5040, #3d3528);
+      color: var(--accent);
+      font-size: 0.82rem;
+    }
+    button.key.digit { font-size: 1.15rem; }
+
+    .serial-panel {
+      flex: 1;
+      min-width: min(360px, 100%);
+      background: var(--panel);
+      border: 1px solid #3d4656;
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      max-height: 480px;
+    }
+    .serial-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: #1e232c;
+      border-bottom: 1px solid #3d4656;
+      font-size: 0.85rem;
+    }
+    .serial-header span {
+      color: var(--ok);
+      font-family: monospace;
+    }
+    .serial-header button {
+      background: #333b4a;
+      border: 1px solid #4a5568;
+      color: var(--text);
+      border-radius: 4px;
+      padding: 4px 10px;
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+    #serial {
+      flex: 1;
+      margin: 0;
+      padding: 12px 14px;
+      overflow: auto;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 0.82rem;
+      line-height: 1.5;
+      color: #b8c4d4;
+      background: #12151a;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .hint {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 0.82rem;
+      text-align: center;
+    }
+    .hint kbd {
+      background: #333;
+      border: 1px solid #555;
+      border-radius: 3px;
+      padding: 1px 6px;
+      font-size: 0.78rem;
+    }
+
+    .top-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin: 0 0 18px;
+    }
+    .cloud-btn {
+      appearance: none;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 18px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      background: linear-gradient(180deg, #4ea1ff, #2b6cb0);
+      color: #fff;
+      box-shadow: 0 3px 0 #1a3f66, inset 0 1px 0 rgba(255,255,255,.18);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .cloud-btn:hover { filter: brightness(1.08); }
+    .cloud-btn:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #1a3f66;
+    }
+    .cloud-btn.secondary {
+      background: linear-gradient(180deg, #3a414d, #2a303a);
+      box-shadow: 0 3px 0 #15191f, inset 0 1px 0 rgba(255,255,255,.08);
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <h1>Industrial Numpad Simulation</h1>
+  <div class="top-actions">
+    <a class="cloud-btn" id="cloudBtn" href="/" target="_blank" rel="noopener">
+      Cloud
+    </a>
+    <a class="cloud-btn secondary" href="/api/export.xlsx">
+      Download Excel
+    </a>
+  </div>
+  <p class="sub">
+    Type digits, press <strong>Ent (A)</strong> to upload to RTM Cloud.
+    Use the <strong>Cloud</strong> button to open the RTM Cloud dashboard.
+  </p>
+  <div id="fileWarn" style="display:none;background:#3a1f1f;border:1px solid #a44;color:#ffb4b4;padding:10px 14px;border-radius:8px;margin-bottom:16px;max-width:640px;text-align:center">
+    This page was opened as a local file. Uploads will fail.
+    Use <strong>http://127.0.0.1:8080/sim</strong> instead (keep <code>python server.py</code> running).
+  </div>
+
+  <div class="layout">
+    <div class="device">
+      <div class="lcd" id="lcd" aria-live="polite">Industrial Pad
+Ready...</div>
+      <div class="keypad" id="keypad">
+        <button class="key digit" data-key="1">1</button>
+        <button class="key digit" data-key="2">2</button>
+        <button class="key digit" data-key="3">3</button>
+        <button class="key fn" data-key="A">Ent</button>
+
+        <button class="key digit" data-key="4">4</button>
+        <button class="key digit" data-key="5">5</button>
+        <button class="key digit" data-key="6">6</button>
+        <button class="key fn" data-key="B">Esc</button>
+
+        <button class="key digit" data-key="7">7</button>
+        <button class="key digit" data-key="8">8</button>
+        <button class="key digit" data-key="9">9</button>
+        <button class="key fn" data-key="C">PgUp</button>
+
+        <button class="key fn" data-key="*">BS</button>
+        <button class="key digit" data-key="0">0</button>
+        <button class="key fn" data-key="#">Clr</button>
+        <button class="key fn" data-key="D">PgDn</button>
+      </div>
+    </div>
+
+    <div class="serial-panel">
+      <div class="serial-header">
+        <div>Serial Monitor <span>115200</span></div>
+        <button type="button" id="clearSerial">Clear</button>
+      </div>
+      <pre id="serial"></pre>
+    </div>
+  </div>
+
+  <p class="hint">
+    Keyboard: click keypad once, then type <kbd>0</kbd>–<kbd>9</kbd>,
+    <kbd>A</kbd>=Enter, <kbd>B</kbd>=Esc, <kbd>*</kbd>, <kbd>#</kbd>, <kbd>C</kbd>/<kbd>D</kbd>
+  </p>
+
+  <script>
+    const MAX_DIGITS = 16;
+    // Same-origin when served from RTM Cloud (/sim). Fallback for local testing.
+    const RTM_CLOUD_URL = (location.protocol === "http:" || location.protocol === "https:")
+      ? location.origin
+      : "http://127.0.0.1:8080";
+    let entry = "";
+    let lastKeyMs = 0;
+    const DEBOUNCE_MS = 40;
+
+    const lcdEl = document.getElementById("lcd");
+    const serialEl = document.getElementById("serial");
+    const cloudBtn = document.getElementById("cloudBtn");
+    if (cloudBtn) {
+      cloudBtn.href = RTM_CLOUD_URL + "/";
+    }
+
+    if (location.protocol === "file:") {
+      const w = document.getElementById("fileWarn");
+      if (w) w.style.display = "block";
+    }
+
+    function serialPrint(line) {
+      serialEl.textContent += line + "\n";
+      serialEl.scrollTop = serialEl.scrollHeight;
+    }
+
+    function setLcd(line1, line2) {
+      const l1 = (line1 || "").slice(0, 16).padEnd(16);
+      const l2 = (line2 || "").slice(0, 16).padEnd(16);
+      lcdEl.textContent = l1 + "\n" + l2;
+    }
+
+    function updateLcd() {
+      setLcd("Enter number:", entry.length ? entry.slice(-16) : "_");
+    }
+
+    function showStatus(line1, line2) {
+      setLcd(line1, line2 || "");
+    }
+
+    function clearEntry() {
+      entry = "";
+    }
+
+    function sleep(ms) {
+      return new Promise((r) => setTimeout(r, ms));
+    }
+
+    let busy = false;
+
+    async function ensureRtmCloud() {
+      serialPrint("[RTM] Ensure cloud...");
+      const r = await fetch(RTM_CLOUD_URL + "/api/cloud/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: "Industrial_Numpad_Cloud" }),
+      });
+      const data = await r.json();
+      serialPrint("[RTM] create HTTP " + r.status);
+      serialPrint(JSON.stringify(data));
+      return r.ok && data.ok;
+    }
+
+    async function uploadToRtmCloud(value) {
+      serialPrint("[RTM] Upload VALUE=" + value);
+      const r = await fetch(RTM_CLOUD_URL + "/api/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ value, device: "industrial-numpad-sim" }),
+      });
+      const data = await r.json();
+      serialPrint("[RTM] upload HTTP " + r.status);
+      serialPrint(JSON.stringify(data));
+      return r.ok && data.ok;
+    }
+
+    async function submitEntry() {
+      if (!entry) {
+        serialPrint("[WARN] Enter pressed with empty input");
+        showStatus("Empty input", "Type digits...");
+        await sleep(800);
+        updateLcd();
+        return;
+      }
+
+      const value = entry;
+      serialPrint("========== SUBMIT ==========");
+      serialPrint("VALUE=" + value);
+      serialPrint("============================");
+      showStatus("Uploading...", value);
+
+      try {
+        showStatus("RTM Cloud...", "Creating/check");
+        const ready = await ensureRtmCloud();
+        if (!ready) {
+          showStatus("Cloud FAIL", "Start server.py");
+          serialPrint("[RTM] Cloud ensure FAILED — is python rtm_cloud/server.py running?");
+          await sleep(1500);
+          updateLcd();
+          return;
+        }
+
+        showStatus("Uploading to", "RTM Cloud...");
+        const stored = await uploadToRtmCloud(value);
+        if (stored) {
+          serialPrint("[RTM] Stored successfully");
+          showStatus("Cloud OK", value);
+        } else {
+          serialPrint("[RTM] Store FAILED");
+          showStatus("Upload FAIL", value);
+        }
+      } catch (err) {
+        serialPrint("[RTM] ERROR: " + err.message);
+        showStatus("Cloud FAIL", "No server");
+      }
+
+      await sleep(1500);
+      clearEntry();
+      updateLcd();
+    }
+
+    async function processKey(key) {
+      if (busy) return;
+      const now = Date.now();
+      if (now - lastKeyMs < DEBOUNCE_MS) return;
+      lastKeyMs = now;
+
+      busy = true;
+      try {
+        if (key >= "0" && key <= "9") {
+          if (entry.length >= MAX_DIGITS) {
+            serialPrint("[WARN] Max digits reached");
+            showStatus("Max 16 digits", entry);
+            await sleep(600);
+            updateLcd();
+          } else {
+            entry += key;
+            serialPrint("[KEY] digit " + key);
+            updateLcd();
+          }
+        } else if (key === "A") {
+          serialPrint("[KEY] Enter");
+          await submitEntry();
+        } else if (key === "B") {
+          serialPrint("[KEY] Esc");
+          clearEntry();
+          showStatus("Cleared (Esc)", "");
+          await sleep(500);
+          updateLcd();
+        } else if (key === "*") {
+          serialPrint("[KEY] Backspace");
+          entry = entry.slice(0, -1);
+          updateLcd();
+        } else if (key === "#") {
+          serialPrint("[KEY] Clear");
+          clearEntry();
+          updateLcd();
+        } else if (key === "C") {
+          serialPrint("[KEY] PgUp");
+          showStatus("PgUp", entry || "-");
+          await sleep(400);
+          updateLcd();
+        } else if (key === "D") {
+          serialPrint("[KEY] PgDn");
+          showStatus("PgDn", entry || "-");
+          await sleep(400);
+          updateLcd();
+        } else {
+          serialPrint("[KEY] Unknown: " + key);
+        }
+      } finally {
+        busy = false;
+      }
+    }
+
+    document.getElementById("keypad").addEventListener("click", (e) => {
+      const btn = e.target.closest("button.key");
+      if (!btn) return;
+      processKey(btn.dataset.key);
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.target.matches("input, textarea")) return;
+      let k = e.key;
+      if (k === "Enter") k = "A";
+      else if (k === "Escape" || k === "b" || k === "B") k = "B";
+      else if (k === "Backspace") k = "*";
+      else if (k === "c" || k === "C") k = "C";
+      else if (k === "d" || k === "D") k = "D";
+      else if (k === "a" || k === "A") k = "A";
+      else if (k.length === 1) k = k.toUpperCase() === k && /[A-D]/.test(k) ? k : k;
+
+      const valid = "0123456789ABCD*#".includes(k) || "0123456789abcd*#".includes(e.key);
+      if (!valid && e.key !== "Enter" && e.key !== "Escape" && e.key !== "Backspace") return;
+
+      // Normalize letters
+      if (/^[abcd]$/.test(e.key)) k = e.key.toUpperCase();
+      if (/^[0-9*#]$/.test(e.key)) k = e.key;
+
+      e.preventDefault();
+      processKey(k);
+    });
+
+    document.getElementById("clearSerial").addEventListener("click", () => {
+      serialEl.textContent = "";
+    });
+
+    // setup()
+    serialPrint("");
+    serialPrint("Industrial Numpad + RTM Cloud");
+    serialPrint("Type digits, then press A to upload");
+    serialPrint("Cloud URL: " + RTM_CLOUD_URL);
+    serialPrint("B=Esc  *=Bksp  #=Clear  C=PgUp  D=PgDn");
+    showStatus("Industrial Pad", "RTM Cloud mode");
+    setTimeout(updateLcd, 800);
+  </script>
+</body>
+</html>

@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Reeman Calling Portal</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="top">
+    <div>
+      <h1>Reeman Calling Portal</h1>
+      <p class="sub">MQTT Calling API v2 — client verification (MQTTX replacement)</p>
+    </div>
+    <div class="badge-row">
+      <span id="connBadge" class="badge off">Disconnected</span>
+      <span id="hbBadge" class="badge off">Heartbeat off</span>
+    </div>
+  </header>
+
+  <main class="grid">
+    <section class="card" id="connectionCard">
+      <h2>1. Connection</h2>
+      <div class="row">
+        <label>Broker profile
+          <select id="profile">
+            <option value="amr" selected>AMR Local MQTT (Nav IP)</option>
+            <option value="embedded">Local Embedded (no Wi-Fi)</option>
+            <option value="cloud">Cloud Calling (mqtt.rmbot.cn)</option>
+            <option value="local">Local Floor (Mosquitto)</option>
+            <option value="custom">Custom (type any Host/Port)</option>
+          </select>
+        </label>
+        <label>Host <input id="host" type="text" placeholder="192.168.5.75" /></label>
+        <label>Port <input id="port" type="number" value="1883" /></label>
+      </div>
+      <div class="row">
+        <label>Client ID <input id="clientId" type="text" placeholder="auto if empty" /></label>
+        <label>Hostname <input id="hostname" type="text" placeholder="AMR hostname" /></label>
+      </div>
+      <div class="row">
+        <label class="grow">Token <input id="token" type="text" autocomplete="off" placeholder="Calling API token" /></label>
+        <label class="grow">AES encryptKey <input id="encryptKey" type="text" autocomplete="off" placeholder="from pairing" /></label>
+      </div>
+      <div class="row">
+        <label>MQTT Username <input id="mqttUsername" type="text" autocomplete="off" placeholder="broker login (if required)" /></label>
+        <label>MQTT Password <input id="mqttPassword" type="password" autocomplete="off" placeholder="broker password" /></label>
+      </div>
+      <p id="connHint" class="hint">AMR Local MQTT: Host = Nav IP, Port = 1883. MQTT Username/Password are broker login (not the Calling token). If connect says bad username/password, fill those from AMR MQTT settings.</p>
+      <div class="actions">
+        <button id="btnConnect" class="primary">Connect</button>
+        <button id="btnDisconnect">Disconnect</button>
+        <button id="btnSaveCreds">Save credentials</button>
+      </div>
+      <p id="connError" class="error" hidden></p>
+    </section>
+
+    <section class="card">
+      <h2>2. Pairing (UDP 239.0.0.1:7979)</h2>
+      <p class="hint">Put the robot in pairing mode. Captured hostname / token / key fill the fields above.</p>
+      <div class="actions">
+        <button id="btnPairStart" class="primary">Start listener</button>
+        <button id="btnPairStop">Stop</button>
+      </div>
+      <pre id="pairStatus" class="mono small">Not listening</pre>
+    </section>
+
+    <section class="card">
+      <h2>3. Heartbeat</h2>
+      <p class="hint">Phone must publish heartbeat within 10s or the robot ignores commands.</p>
+      <div class="actions">
+        <button id="btnHbStart" class="primary">Start heartbeat (4s)</button>
+        <button id="btnHbStop">Stop</button>
+      </div>
+      <p id="hbInfo" class="mono small">—</p>
+    </section>
+
+    <section class="card">
+      <h2>4. Robot status</h2>
+      <div id="robotStatus" class="status-grid">
+        <div class="stat"><span>Battery</span><strong id="stBattery">—</strong></div>
+        <div class="stat"><span>E-stop</span><strong id="stEstop">—</strong></div>
+        <div class="stat"><span>Charge</span><strong id="stCharge">—</strong></div>
+        <div class="stat"><span>Navigating</span><strong id="stNav">—</strong></div>
+        <div class="stat"><span>Task exec</span><strong id="stTaskExec">—</strong></div>
+        <div class="stat"><span>Current task</span><strong id="stCurrent">—</strong></div>
+      </div>
+      <pre id="robotRaw" class="mono small">Waiting for robot heartbeat…</pre>
+      <div class="actions tight">
+        <button id="btnHttpHostname">HTTP: hostname</button>
+        <button id="btnHttpPose">HTTP: pose</button>
+        <button id="btnHttpBase">HTTP: battery</button>
+        <button id="btnHttpNav">HTTP: nav_status</button>
+      </div>
+      <pre id="httpOut" class="mono small" hidden></pre>
+    </section>
+
+    <section class="card">
+      <h2>5. Request points</h2>
+      <div class="actions wrap">
+        <button data-points="calling_model">Calling model</button>
+        <button data-points="normal_model">Normal model</button>
+        <button data-points="route_model">Route model</button>
+        <button data-points="qrcode_model">QR code model</button>
+      </div>
+      <pre id="pointsOut" class="mono">No points yet</pre>
+    </section>
+
+    <section class="card">
+      <h2>6. Tasks</h2>
+      <div class="tabs">
+        <button class="tab active" data-tab="normal">Normal</button>
+        <button class="tab" data-tab="route">Route</button>
+        <button class="tab" data-tab="qrcode">QR</button>
+        <button class="tab" data-tab="charge">Charge</button>
+        <button class="tab" data-tab="return">Return</button>
+      </div>
+
+      <div class="tab-panel" id="tab-normal">
+        <div class="row">
+          <label>Map (optional) <input id="normalMap" type="text" placeholder="null if no elevator" /></label>
+          <label>Point <input id="normalPoint" type="text" placeholder="point1" /></label>
+        </div>
+        <button class="primary" id="btnTaskNormal">Send normal task</button>
+      </div>
+
+      <div class="tab-panel hidden" id="tab-route">
+        <label>Route name <input id="routeName" type="text" placeholder="route1" /></label>
+        <button class="primary" id="btnTaskRoute">Send route task</button>
+      </div>
+
+      <div class="tab-panel hidden" id="tab-qrcode">
+        <div class="row">
+          <label>First point <input id="qrFirst" type="text" placeholder="pickup" /></label>
+          <label>Second point <input id="qrSecond" type="text" placeholder="dropoff" /></label>
+        </div>
+        <button class="primary" id="btnTaskQr">Send QR task</button>
+      </div>
+
+      <div class="tab-panel hidden" id="tab-charge">
+        <p class="hint">Charge task — body is null per PDF.</p>
+        <button class="primary" id="btnTaskCharge">Send charge task</button>
+      </div>
+
+      <div class="tab-panel hidden" id="tab-return">
+        <p class="hint">Return task — body is null per PDF.</p>
+        <button class="primary" id="btnTaskReturn">Send return task</button>
+      </div>
+
+      <h3>Last task response</h3>
+      <pre id="taskOut" class="mono">—</pre>
+    </section>
+
+    <section class="card" id="floorCard">
+      <h2>7. MQTT pub/sub + expected replies</h2>
+      <p class="hint">Publish any topic here, or use the preset buttons. Message log shows what comes back.</p>
+      <div class="actions wrap" id="topicPresets"></div>
+      <pre id="topicGuide" class="mono small">Loading topic guide…</pre>
+      <div class="row">
+        <label class="grow">Subscribe topic <input id="subTopic" type="text" placeholder="reeman/calling/robot/+/v2/#" /></label>
+        <button id="btnSubscribe">Subscribe</button>
+      </div>
+      <div class="row">
+        <label class="grow">Publish topic <input id="pubTopic" type="text" placeholder="reeman/calling/phone/{hostname}/v2/heartbeat" /></label>
+      </div>
+      <label>Payload (JSON or text)
+        <textarea id="pubPayload" rows="3">{"token":"demo-token"}</textarea>
+      </label>
+      <button class="primary" id="btnPublish">Publish</button>
+    </section>
+
+    <section class="card wide" id="missionCard">
+      <div class="log-head">
+        <h2>9. Call-station mission live status</h2>
+        <button id="btnRefreshMissions">Refresh</button>
+      </div>
+      <p class="hint">
+        ESP32 publishes mission state-machine events to <code>callstation/mission/record</code>.
+        <strong>A</strong>/<strong>B</strong> → <em>running</em>,
+        <strong>C</strong> → <em>pausing</em>,
+        finish → <em>complete</em>,
+        <strong>D</strong> → <em>stored</em>.
+        Same mission # is updated in place. Data: <code>portal/data/missions.json</code>.
+      </p>
+      <div class="status-grid mission-stats">
+        <div class="stat"><span>Missions</span><strong id="msTotal">0</strong></div>
+        <div class="stat"><span>Active (run/pause)</span><strong id="msActive">0</strong></div>
+        <div class="stat"><span>Latest #</span><strong id="msLatestId">—</strong></div>
+        <div class="stat"><span>Latest status</span><strong id="msLatestResult">—</strong></div>
+      </div>
+      <div class="table-wrap">
+        <table class="mission-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Updated</th>
+              <th>Key</th>
+              <th>Status</th>
+              <th>Phase</th>
+              <th>Workflow</th>
+              <th>Route</th>
+              <th>Battery</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody id="missionRows">
+            <tr><td colspan="9" class="muted">No missions yet — press A or B on the ESP32 (portal must be running).</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card wide">
+      <div class="log-head">
+        <h2>8. Message log</h2>
+        <button id="btnClearLog">Clear</button>
+      </div>
+      <div id="log" class="log"></div>
+    </section>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>

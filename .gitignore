@@ -1,0 +1,48 @@
+﻿# Dependencies
+node_modules/
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+dist/
+build/
+
+# Local / IDE
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Secrets & local config
+.env
+.env.*
+!.env.example
+config.json
+**/autodesk_backup_code.txt
+*.pem
+*.key
+credentials*
+
+# Junk / incomplete downloads
+*.crdownload
+*.tmp
+*.bkp
+*.download
+Unconfirmed*
+~$*
+
+# Archives & installers (source folders kept instead)
+*.zip
+*.exe
+*.msi
+*.apk
+*.mp4
+
+# Office / temp
+~WRL*.tmp
+
+# Vendor tools (install locally)
+**/arduino-cli.exe
+**/CP210x_Universal_Windows_Driver/

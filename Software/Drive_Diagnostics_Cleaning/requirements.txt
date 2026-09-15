@@ -1,0 +1,6 @@
+# Drive Diagnostics & Cleaning
+# Standard library only for core features (tkinter ships with Python on Windows).
+# No third-party packages required for the default build.
+
+# Optional (future packaging):
+# pyinstaller>=6.0

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Project 2 — Pallet cloud</title>
+  <style>
+    :root { --bg: #f4f2ec; --ink: #1a1a1a; --accent: #1d3557; --line: #d8d4c8; }
+    body { font-family: "Segoe UI", system-ui, sans-serif; margin: 0; background: var(--bg); color: var(--ink); }
+    header { padding: 1rem 1.25rem; background: #fffef9; border-bottom: 1px solid var(--line); }
+    h1 { margin: 0 0 0.25rem; font-size: 1.2rem; color: var(--accent); }
+    p { margin: 0; color: #555; font-size: 0.9rem; }
+    main { padding: 1rem 1.25rem; max-width: 960px; }
+    .row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin: 0.75rem 0; }
+    input { padding: 0.45rem 0.6rem; border: 1px solid var(--line); border-radius: 3px; }
+    button { padding: 0.45rem 0.75rem; border: 1px solid var(--accent); background: var(--accent); color: #fff; border-radius: 3px; cursor: pointer; }
+    button.secondary { background: transparent; color: var(--accent); }
+    button.danger { background: #9b2226; border-color: #9b2226; }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    table { width: 100%; border-collapse: collapse; background: #fffef9; font-size: 0.85rem; }
+    th, td { border-bottom: 1px solid var(--line); text-align: left; padding: 0.4rem 0.35rem; }
+    .muted { color: #666; font-size: 0.8rem; }
+    .ok { color: #2d6a4f; }
+    .bad { color: #9b2226; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Project 2 — Warehouse pallet log</h1>
+    <p>Type ID on keypad → press <strong>A</strong> → status <strong>placed</strong> = placement validated · Download Excel · Void = admin only</p>
+  </header>
+  <main>
+    <div class="row">
+      <input id="password" type="password" placeholder="Admin password" />
+      <button type="button" id="btnLogin">Login</button>
+      <button type="button" class="secondary" id="btnLogout" disabled>Logout</button>
+      <span id="authState" class="muted">Not logged in</span>
+    </div>
+    <div class="row">
+      <button type="button" class="secondary" id="btnRefresh">Refresh</button>
+      <a href="/api/pallets/export.xls"><button type="button">Download Excel</button></a>
+      <a href="/api/pallets/export.csv"><button type="button" class="secondary">Download CSV</button></a>
+      <a href="/api/pallets/export.json"><button type="button" class="secondary">Download JSON</button></a>
+      <span id="stats" class="muted"></span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Pallet ID</th>
+          <th>Status</th>
+          <th>Purpose</th>
+          <th>Station</th>
+          <th>Mission</th>
+          <th>Updated</th>
+          <th>Notes</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="rows">
+        <tr><td colspan="8" class="muted">Loading…</td></tr>
+      </tbody>
+    </table>
+  </main>
+  <script>
+    let adminToken = sessionStorage.getItem('p2AdminToken') || '';
+
+    function setAuthUi() {
+      const logged = !!adminToken;
+      document.getElementById('btnLogout').disabled = !logged;
+      document.getElementById('authState').textContent = logged ? 'Admin session active' : 'Not logged in';
+      document.getElementById('authState').className = logged ? 'ok' : 'muted';
+    }
+
+    async function loadPallets() {
+      const res = await fetch('/api/pallets?limit=200');
+      const data = await res.json();
+      const body = document.getElementById('rows');
+      const stats = data.stats || {};
+      document.getElementById('stats').textContent =
+        `Total ${stats.total || 0}` + (stats.byStatus ? ' · ' + JSON.stringify(stats.byStatus) : '');
+      if (!data.records || !data.records.length) {
+        body.innerHTML = '<tr><td colspan="8" class="muted">No pallets yet — type ID on 4×4 keypad and press A (warehouse placed).</td></tr>';
+        return;
+      }
+      body.innerHTML = data.records.map((r) => {
+        const when = r.updatedAt ? new Date(r.updatedAt).toLocaleString() : '';
+        const voidBtn =
+          r.status === 'void'
+            ? '<span class="muted">voided</span>'
+            : `<button type="button" class="danger voidBtn" data-id="${escapeHtml(r.palletId)}" ${adminToken ? '' : 'disabled'}>Void</button>`;
+        return `<tr>
+          <td><strong>${escapeHtml(r.palletId)}</strong></td>
+          <td>${escapeHtml(r.status || '')}</td>
+          <td>${escapeHtml(r.purpose || '')}</td>
+          <td>${escapeHtml(r.stationId || '')}</td>
+          <td>${r.missionId != null ? escapeHtml(String(r.missionId)) : ''}</td>
+          <td>${escapeHtml(when)}</td>
+          <td>${escapeHtml(r.notes || '')}</td>
+          <td>${voidBtn}</td>
+        </tr>`;
+      }).join('');
+      body.querySelectorAll('.voidBtn').forEach((btn) => {
+        btn.addEventListener('click', () => voidPallet(btn.getAttribute('data-id')));
+      });
+    }
+
+    function escapeHtml(s) {
+      return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    async function login() {
+      const password = document.getElementById('password').value;
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        alert(data.error || 'Login failed');
+        return;
+      }
+      adminToken = data.token;
+      sessionStorage.setItem('p2AdminToken', adminToken);
+      setAuthUi();
+      loadPallets();
+    }
+
+    function logout() {
+      adminToken = '';
+      sessionStorage.removeItem('p2AdminToken');
+      setAuthUi();
+      loadPallets();
+    }
+
+    async function voidPallet(palletId) {
+      if (!adminToken) {
+        alert('Admin login required');
+        return;
+      }
+      if (!confirm('Void pallet ' + palletId + '? Operators cannot undo this.')) return;
+      const res = await fetch('/api/pallets/' + encodeURIComponent(palletId) + '/void', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + adminToken },
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        alert(data.error || 'Void failed');
+        if (res.status === 401) logout();
+        return;
+      }
+      loadPallets();
+    }
+
+    document.getElementById('btnLogin').addEventListener('click', login);
+    document.getElementById('btnLogout').addEventListener('click', logout);
+    document.getElementById('btnRefresh').addEventListener('click', loadPallets);
+    setAuthUi();
+    loadPallets();
+    setInterval(loadPallets, 5000);
+  </script>
+</body>
+</html>

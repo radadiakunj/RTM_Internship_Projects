@@ -1,0 +1,56 @@
+{
+  "cloud": "Industrial_Numpad_Cloud",
+  "created_at": "2026-08-05T10:04:58Z",
+  "status": "active",
+  "values": [
+    {
+      "id": 1,
+      "value": "35",
+      "device": "test",
+      "stored_at": "2026-08-05T10:06:30Z"
+    },
+    {
+      "id": 2,
+      "value": "1562563",
+      "device": "industrial-numpad-sim",
+      "stored_at": "2026-08-05T10:19:57Z"
+    },
+    {
+      "id": 3,
+      "value": "21283728",
+      "device": "industrial-numpad-sim",
+      "stored_at": "2026-08-05T10:20:16Z"
+    },
+    {
+      "id": 4,
+      "value": "56890",
+      "device": "industrial-numpad-sim",
+      "stored_at": "2026-08-13T12:21:33Z"
+    },
+    {
+      "id": 5,
+      "value": "256",
+      "device": "industrial-numpad-sim",
+      "stored_at": "2026-08-13T12:26:26Z"
+    },
+    {
+      "id": 6,
+      "value": "56576",
+      "device": "dashboard-test",
+      "stored_at": "2026-08-13T12:27:53Z"
+    },
+    {
+      "id": 7,
+      "value": "12305612",
+      "device": "industrial-numpad-sim",
+      "stored_at": "2026-08-13T12:31:06Z"
+    },
+    {
+      "id": 8,
+      "value": "1023456102",
+      "device": "dashboard-test",
+      "stored_at": "2026-08-13T12:32:54Z"
+    }
+  ],
+  "updated_at": "2026-08-13T12:32:54Z"
+}

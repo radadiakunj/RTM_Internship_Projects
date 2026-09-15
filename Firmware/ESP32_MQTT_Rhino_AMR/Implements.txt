@@ -1,0 +1,615 @@
+================================================================================
+ESP32 + MQTT RHINO AMR — FLOOR COMMUNICATION / MANAGEMENT SYSTEM
+Implements.txt  |  Updated: 2026-07-18
+================================================================================
+
+END GOAL
+--------
+Prevent two (or more) AMRs from colliding when they target the same floor point
+(e.g. Point A) by building a floor communication / traffic layer using:
+
+  ESP32  +  MQTT  +  Rhino HTTP/MQTT APIs  +  (optional) cameras / RFID
+
+Architecture (target):
+
+  Dashboard / Postman / MQTTX
+           |
+           v
+     MQTT Broker (local Mosquitto / EMQX, or mqtt.rmbot.cn for Reeman calling)
+           |
+     +-----+-----+
+     |           |
+   ESP32#1     ESP32#2   (bridge / traffic lights / zone locks)
+     |           |
+  Rhino AMR1  Rhino AMR2   via Wi-Fi HTTP: http://ROBOT_IP/...
+           |
+     Camera / RFID nodes publish status on MQTT for the dashboard
+
+
+--------------------------------------------------------------------------------
+1) WHAT TO DO NOW (components not fully arrived yet)
+--------------------------------------------------------------------------------
+PRIORITY ORDER — do these first:
+
+[DONE] MQTTX practice (phone <-> laptop) — understand publish/subscribe
+[NEXT] Learn networking basics: IP, MAC, LAN, same-subnet, ports 80/1883
+[NEXT] Get Rhino navigation IP from aging-ros3 (NOT 127.0.0.1)
+[NEXT] Postman: GET hostname + pose on same Wi-Fi as robot
+[NEXT] Postman: POST /cmd/move forward/reverse (clear area, e-stop ready)
+[NEXT] Postman: POST /cmd/nav_name to mapped point "A"
+[NEXT] Install local MQTT broker (Mosquitto) on laptop for floor topics
+[NEXT] Design floor topic map (see section 4)
+[NEXT] Sketch CAD / enclosure only AFTER connectors & ESP32 pinout are fixed
+[WAIT] ESP32 firmware when boards arrive
+[WAIT] Camera RTSP/MJPEG into dashboard when camera arrives
+[WAIT] RFID read/write tests when tags + reader arrive
+[WAIT] Molex / injection molding after electrical design is frozen
+
+Immediate network checklist:
+  1. PC and Rhino on SAME Wi-Fi / LAN
+  2. Router third octet must NOT be .10.x (Reeman rule: 192.168.10.x illegal)
+  3. If aging-ros3 shows 127.0.0.1 → robot not on network
+  4. Test: GET http://ROBOT_IP/reeman/hostname  → must return JSON
+  5. Keep emergency stop reachable for all motion tests
+
+
+--------------------------------------------------------------------------------
+2) REEMAN RHINO — HTTP WEB API (SLAM WEB API 3.0)
+--------------------------------------------------------------------------------
+Source docs:
+  - REEMAN SLAM WEB API 3.0-2024-06-03.pdf
+  - SLAM 3.0 API.pdf
+  - REEMAN FORKLIFT CALLING API.pdf
+
+Replace (host) with robot navigation IP, e.g. 192.168.1.50
+Client must be on the same LAN as the navigation system.
+
+Content-Type for bodies: application/json  (unless noted)
+
+--- STATUS / SENSOR (mostly GET) ---
+
+GET  http://(host)/reeman/current_version
+     → {"version":"v1.1.0"}
+
+GET  http://(host)/reeman/pose
+     → {"x":2.97,"y":2.51,"theta":0.97}
+
+GET  http://(host)/reeman/get_mode
+     → {"mode":2}   // 1=mapping, 2=navigation
+
+GET  http://(host)/reeman/hostname
+     → {"hostname":"reeman-robot"}
+
+GET  http://(host)/reeman/imu
+     → {"a":0.0,"g":0.0}   // exception = fault
+
+GET  http://(host)/reeman/laser
+     → {"coordinates":[[364,166],...]}
+
+GET  http://(host)/reeman/base_encode
+     → {"battery":100,"chargeFlag":1,"emergencyButton":0}
+       chargeFlag: 2=dock charging, 3=adapter, 8=docking, other=not charging
+       emergencyButton: 0=pressed, 1=released
+
+GET  http://(host)/reeman/speed
+     → {"vx":0.3,"vth":0.5}   // vx m/s, vth deg/s (doc wording)
+
+GET  http://(host)/reeman/nav_status
+     → {"res":3,"reason":0,"goal":"A","dist":1.8,"mileage":2.3}
+       res=1 start, res=3 done (reason 0 success / 1 fail),
+       res=4 cancelled, res=6 special reasons (e-stop, charge, no goal, etc.)
+
+GET  http://(host)/reeman/global_plan
+     → {"coordinates":[[0.826,-0.35],...]}
+
+--- RELOCALIZATION (POST) ---
+
+POST http://(host)/cmd/reloc_pose
+Body: {"x":1.0,"y":3,"theta":0.14}
+     → {"status":"success"}
+
+POST http://(host)/cmd/reloc_absolute
+Body: {"x":1.0,"y":3,"theta":0.14}
+     → {"status":"success"}
+
+--- NAVIGATION (POST / GET) ---
+
+POST http://(host)/cmd/nav
+Body: {"x":285,"y":252,"theta":1.6}   // theta in radians
+     → {"status":"success"}
+
+POST http://(host)/cmd/nav_name
+Body: {"point":"A"}
+     → {"status":"success"}  // Exception if point not found
+
+POST http://(host)/cmd/points_path
+Body: {"name":"A"}
+     → {"status":"success"}
+
+POST http://(host)/cmd/cancel_goal
+Body: {}
+     → {"status":"success"}
+
+POST http://(host)/cmd/charge
+Body: {"type":0,"point":"充电桩"}
+     type 0=dock now, 1=cancel dock, 2=nav to charger then dock
+
+POST http://(host)/cmd/max_speed
+Body: {"speed":0.5}   // range 0.3–1.0 m/s
+
+--- MAP (GET / POST) ---
+
+GET  http://(host)/reeman/map
+GET  http://(host)/reeman/current_map
+     → {"alias":"...","name":"<map_id>"}
+GET  http://(host)/reeman/history_map
+
+POST http://(host)/cmd/set_mode
+Body: {"mode":1}   // mapping
+Body: {"mode":3}   // incremental mapping
+
+POST http://(host)/cmd/save_map
+Body: {}
+
+POST http://(host)/cmd/apply_map
+Body: {"name":"<map_name>"}
+
+POST http://(host)/download/export_map
+Body: {"name":"<map_name>"}   // blob download
+
+POST http://(host)/upload/import_map
+Body: FormData file
+
+POST http://(host)/cmd/rename_map
+Body: {"name":"<map_id>","alias":"test34"}
+
+POST http://(host)/cmd/delete_map
+Body: {"name":"<map_name>"}
+
+--- WAYPOINTS / ROUTES ---
+
+POST http://(host)/cmd/position
+Body: {"name":"test","type":"delivery","pose":{"x":-3.05,"y":0.41,"theta":0.56}}
+     type must be: delivery | normal | production | charge
+
+DELETE http://(host)/cmd/position
+Body: ["test"]
+
+GET  http://(host)/reeman/position
+GET  http://(host)/reeman/navi_routes
+GET  http://(host)/reeman/path_model
+GET  http://(host)/reeman/special_polygon
+GET  http://(host)/reeman/restrict_layer
+
+POST http://(host)/cmd/restrict_layer
+Body: {"waypoints":[{"pose":{"point1":{"x":1.1,"y":2.2},"point2":{"x":3.3,"y":4.4}}}]}
+
+--- MANUAL MOTION (POST) — use carefully ---
+
+POST http://(host)/cmd/speed
+Body: {"vx":0.4,"vth":0}     // forward; send ~every 300 ms for continuous
+Body: {"vx":-0.4,"vth":0}    // reverse
+Body: {"vx":0,"vth":0.5}     // left turn
+Body: {"vx":0,"vth":-0.5}    // right turn
+Body: {"vx":0,"vth":0}       // stop
+
+POST http://(host)/cmd/move
+Body: {"distance":100,"direction":1,"speed":0.4}  // forward 100 cm
+Body: {"distance":100,"direction":0,"speed":0.4}  // reverse 100 cm
+Body: {"distance":0,"direction":1,"speed":0}      // stop
+
+POST http://(host)/cmd/turn
+Body: {"direction":1,"angle":90,"speed":0.6}  // left 90 deg
+Body: {"direction":0,"angle":90,"speed":0.6}  // right 90 deg
+Body: {"angle":0,"direction":1,"speed":0}     // stop turn
+
+--- POWER / LIFT (POST) ---
+
+POST http://(host)/cmd/lock
+POST http://(host)/cmd/unlock
+POST http://(host)/cmd/hydraulic_up
+POST http://(host)/cmd/hydraulic_down
+POST http://(host)/upload/upgrade   // FormData firmware file
+
+POSTMAN CHEAT SHEET (start here):
+  1) GET  /reeman/hostname
+  2) GET  /reeman/pose
+  3) GET  /reeman/base_encode      (check e-stop = 1 released)
+  4) GET  /reeman/get_mode         (must be 2 navigation)
+  5) POST /cmd/move                (short distance test)
+  6) POST /cmd/nav_name            {"point":"A"}
+  7) GET  /reeman/nav_status       (poll until res=3)
+
+
+--------------------------------------------------------------------------------
+3) REEMAN FORKLIFT CALLING — MQTT API
+--------------------------------------------------------------------------------
+Source: REEMAN+FORKLIFT+CALLING+API.pdf
+
+Broker:  mqtt.rmbot.cn
+Port:    1883
+
+Pairing (UDP multicast before MQTT):
+  Multicast IP:   239.0.0.1
+  Multicast port: 7979
+  Robot broadcasts when in pairing mode:
+    {"hostname":"...","alias":"...","key":"...","token":"...","robotType":9}
+  robotType 9 = forklift (Rhino family)
+
+IMPORTANT:
+  - Task payloads use AES encryption with pairing key
+  - Heartbeat from phone must arrive within 10 s or robot ignores commands
+  - Robot heartbeat after wake: every 5 s
+  - This cloud calling MQTT is for mapped tasks, NOT simple joystick move
+  - For local floor collision avoidance, prefer LOCAL broker + HTTP /cmd/*
+
+Phone → Robot topics (publish):
+  reeman/calling/phone/{hostname}/forklift/heartbeat
+      {"token":"..."}
+
+  reeman/calling/phone/{hostname}/forklift/points/request/calling_model
+  reeman/calling/phone/{hostname}/forklift/points/request/auto_model
+  reeman/calling/phone/{hostname}/forklift/points/request/manual_model
+  reeman/calling/phone/{hostname}/forklift/points/request/task_model
+      {"token":"..."}
+
+  reeman/calling/phone/{hostname}/forklift/task/calling_model
+  reeman/calling/phone/{hostname}/forklift/task/auto_model
+  reeman/calling/phone/{hostname}/forklift/task/manual_model
+  reeman/calling/phone/{hostname}/forklift/task/task_model
+      {"token":"...","body":"<AES encrypted>"}
+
+  Calling body (before AES): {"map":"map1","point":"point1"}
+  Auto body: list of {first:{map,point}, second:{map,point}} pairs
+  Manual body: {first:null, second:"point"}
+  Task body: "routeName" string
+
+Robot → Phone topics (subscribe):
+  reeman/calling/robot/{hostname}/forklift/heartbeat
+      status: battery, e-stop, navigating, currentTask, taskList, ...
+
+  reeman/calling/robot/{hostname}/forklift/points/response/calling_model
+  reeman/calling/robot/{hostname}/forklift/points/response/auto_model
+  reeman/calling/robot/{hostname}/forklift/points/response/manual_model
+  reeman/calling/robot/{hostname}/forklift/points/response/task_model
+      {"token":"...","code":0,"body":"<AES>"}  // code 0=ok decrypt, 1=error plaintext
+
+  reeman/calling/robot/{hostname}/forklift/task/response
+      code 0=task started, 2=cannot start
+
+HTTP vs MQTT on Rhino (remember this):
+  HTTP /cmd/move, /cmd/speed, /cmd/nav_name  →  local Wi-Fi direct control
+  MQTT mqtt.rmbot.cn calling topics          →  paired task/point calling
+  Your factory floor MQTT (Mosquitto)        →  multi-AMR traffic + sensors
+
+
+--------------------------------------------------------------------------------
+4) LOCAL FLOOR MQTT TOPIC MAP (your system — design now)
+--------------------------------------------------------------------------------
+Use a LOCAL broker (Mosquitto on PC or industrial PC). Do NOT rely on
+broker.emqx.io for production floor control.
+
+Suggested topics:
+
+  floor/{site}/amr/{amr_id}/pose          // publish: x,y,theta,ts
+  floor/{site}/amr/{amr_id}/status        // battery, e-stop, mode, goal
+  floor/{site}/amr/{amr_id}/cmd           // go_point / stop / cancel
+  floor/{site}/zone/{zone_id}/lock        // "free" | "held_by:AMR1"
+  floor/{site}/point/{point_id}/reservation
+  floor/{site}/traffic/event              // conflict, yield, clear
+  floor/{site}/conveyor/{line_id}/vision  // product OK / jam / missing
+  floor/{site}/rfid/{reader_id}/tag       // tag UID + timestamp
+  floor/{site}/camera/{cam_id}/event      // detect events (not raw video)
+  floor/{site}/estop                      // global soft stop flag
+
+Collision rule (simple v1):
+  Before AMR goes to Point A:
+    1) Publish reservation request for point A
+    2) Floor manager grants lock only if free
+    3) Winner navigates via HTTP POST /cmd/nav_name {"point":"A"}
+    4) On arrival / cancel, release lock
+    5) Loser waits or takes alternate point/path
+
+ESP32 role later:
+  MQTT subscribe cmd → translate → HTTP POST to Rhino IP
+  OR publish Rhino status polled via HTTP GET onto MQTT
+
+
+--------------------------------------------------------------------------------
+5) MORE FACTORY FLOOR IDEAS (solve real problems)
+--------------------------------------------------------------------------------
+Collision / traffic:
+  - Point / zone locks over MQTT (above)
+  - Virtual walls via /cmd/restrict_layer for temporary blocked aisles
+  - One-way corridors (software rule on dashboard)
+  - Yield rules by priority / battery / job type
+  - Soft e-stop topic that forces /cmd/cancel_goal on all AMRs
+
+Position awareness:
+  - Poll /reeman/pose + /reeman/nav_status → MQTT every 200–500 ms
+  - RFID portals at Point A/B/C for hard confirmation AMR arrived
+  - QR floor codes (Rhino supports QR assist on some models)
+
+Conveyor + camera (your idea — keep it):
+  - Camera watches product presence / orientation on belt
+  - Publish MQTT event: product_ok / product_jam / missing
+  - Only then release AMR to pick or dock at that station
+  - Dashboard shows live MJPEG/RTSP + event timeline (video ≠ MQTT payload)
+
+Material identity:
+  - RFID tag on pallet/bin → reader at station → MQTT tag event
+  - Matches job ticket before AMR is allowed to leave with load
+
+Human / safety:
+  - Door / light-curtain sensors → MQTT → pause AMRs in that zone
+  - Andon stack lights driven by ESP32 from MQTT fault topics
+  - Manual call buttons (ESP32) publish "call AMR to Point X"
+
+Maintenance / ops:
+  - Battery + chargeFlag MQTT → auto send /cmd/charge when low
+  - Job history log (who reserved which point when)
+  - Heartbeat watchdog: if AMR MQTT silent > N sec → alarm
+
+Hardware / industrial:
+  - Molex for power/sensor harnesses (lock after pinout freeze)
+  - Injection-molded ESP32 enclosure after CAD of board + connectors
+  - Industry OS / dashboard later (start with MQTT + Postman + simple web)
+
+
+--------------------------------------------------------------------------------
+6) LEARNING TRACK (API + NETWORKING + MQTT)
+--------------------------------------------------------------------------------
+Networking:
+  - IP = address on LAN; MAC = hardware NIC id
+  - Same subnet needed for HTTP to ROBOT_IP
+  - Ports: 80 (HTTP API), 1883 (MQTT), 7979 (UDP pairing multicast)
+  - Gateway / DHCP / static IP for robots
+
+HTTP methods (Postman):
+  GET    = read status (pose, battery, mode)
+  POST   = send command (move, nav, charge, map ops)
+  DELETE = remove resource (waypoint delete)
+  PUT    = replace resource (not heavily used in this Reeman doc set)
+
+MQTT vs HTTP:
+  HTTP  = request/response to ONE robot IP (best for motion commands)
+  MQTT  = many devices share topics (best for fleet traffic + sensors)
+  Combine both: MQTT for coordination, HTTP for actual Rhino motion
+
+
+--------------------------------------------------------------------------------
+7) PROGRESS LOG
+--------------------------------------------------------------------------------
+2026-07-16
+  - User practiced MQTTX on broker.emqx.io (Temperature topic)
+  - Clarified: public broker practice ≠ Rhino control
+  - Extracted Reeman HTTP move/nav APIs and mqtt.rmbot.cn calling API
+  - Fixed one-way MQTTX (unique Client IDs)
+
+2026-07-18
+  - Goal expanded to floor management (multi-AMR collision + camera conveyor)
+  - Full HTTP method list + MQTT calling topics written into this file
+  - Local floor topic map + do-now checklist defined
+  - Next concrete action: get ROBOT_IP from aging-ros3 and run Postman GETs
+
+2026-07-30
+  - Robot hostname: rbot55f-260114-003-001
+  - Nav IP: 192.168.5.75 | Laptop: 192.168.5.117 | MQTT port 1883
+  - Task-1: built Calling API web portal under portal/ (MQTTX replacement)
+    Run: cd portal && npm install && npm start → http://localhost:3080
+    Brokers: mqtt.rmbot.cn (cloud) + local Mosquitto switch
+    Features: heartbeat, points, AES tasks, UDP pairing, message log, floor pub/sub
+  - Still need pairing encryptKey (UDP pairing or paste into portal)
+
+
+--------------------------------------------------------------------------------
+8) OPEN ITEMS / NEED FROM USER
+--------------------------------------------------------------------------------
+  [x] Rhino navigation IP from aging-ros3 → 192.168.5.75
+  [x] Robot hostname string → rbot55f-260114-003-001
+  [ ] Existing mapped point names (A, B, charge, ...)
+  [x] Brokers: both Reeman cloud calling AND local Mosquitto (portal switch)
+  [ ] Pairing encryptKey (AES) — capture via portal UDP listener
+  [ ] Camera model / stream type (RTSP / USB / ESP32-CAM)
+  [ ] RFID reader interface (UART / Wiegand / Ethernet)
+
+
+
+
+MQTT commands in How_to_Use_with_ESP32_Step_by_Step.ino
+1. 1) Connect in MQTTX
+Field	Value
+Host
+192.168.5.117 (your PC IP — same as Call Mode Server Address)
+Port
+1883
+Username / Password
+empty (Stage-1 allow_anonymous)
+Broker must be running first (SOP_broker + mosquitto.conf).
+
+2) Subscribe (watch everything)
+Add these subscriptions (QoS 0 is fine):
+
+Topic	Why
+floor/callstation/home1/#
+ESP32 button, status, LEDs, heartbeat
+reeman/calling/robot/rbot55f-260114-003-001/forklift/#
+AMR status / replies
+Optional catch-all while learning: #
+
+3) Publish — simulate White button (no ESP32)
+Topic:
+
+floor/callstation/home1/cmd
+Payload (JSON):
+
+{
+  "cmd": "run_job",
+  "station": "home1",
+  "home": "Home",
+  "pick": "A",
+  "drop": "D"
+}
+That is the only floor command you need for the full Home→A→D→Home job.
+
+Bridge must be running so this becomes a real AMR task:
+
+python call_station\bridge\call_station_dashboard.py --broker 192.168.5.117 --hostname rbot55f-260114-003-001 --token "YOUR_TOKEN" --key a5F6dmfr --pick A --drop D --home Home
+4) Publish — drive ESP32 LEDs manually (test lights)
+Topic:
+
+floor/callstation/home1/leds
+Payloads (one at a time):
+
+{"phase":"to_pick"}
+→ Green (→ Point A)
+
+{"phase":"to_drop"}
+→ Yellow (→ Point D)
+
+{"phase":"to_home"}
+→ Red (→ Home)
+
+{"phase":"idle"}
+→ all off
+
+{"phase":"error"}
+→ all on
+
+5) What you should not type by hand in MQTTX
+Reeman task topics like:
+
+reeman/calling/phone/rbot55f-260114-003-001/forklift/task/auto_model
+need AES-encrypted body + continuous heartbeat. Use the bridge or reeman_forklift_client.py for those — not raw MQTTX JSON.
+
+Quick test order
+Mosquitto running
+MQTTX connected + subscribed to floor/callstation/home1/#
+Publish run_job on .../cmd or press White on ESP32
+You should see that message in MQTTX; with bridge + AMR, robot moves and .../leds phases appear
+
+
+PROBLEM - 1
+
+when i run this "python reeman_forklift_client.py `
+  --broker 192.168.5.115 `
+  --hostname rbot55f-260114-003-001 `
+  --token "Z2IcM93div5zO1jdJ5EgzaRlNaIHot1iTBCid7JrToG6xnghx4ivtxL0" `
+  --key a5F6dmfr `
+  --goto home `
+  --mqtt-user "Robo" --mqtt-pass "1234"
+
+then it will show like this below
+
+ self.client = mqtt.Client(client_id=f"phone-{identity.hostname}-{int(time.time())}")
+2026-08-09 12:11:40,105 INFO Connecting to broker 192.168.5.115:1883 ...
+2026-08-09 12:11:40,111 INFO Connected & subscribed to reeman/calling/robot/rbot55f-260114-003-001/forklift/#
+2026-08-09 12:11:40,140 INFO STATUS  battery=84% eStop=1 charge=1 nav=False exec=False lifting=False liftPos=0 task=None queue=0
+2026-08-09 12:11:42,116 INFO Dispatched calling_model task: {"map": null, "point": "home"}
+2026-08-09 12:11:45,145 INFO STATUS  battery=84% eStop=1 charge=1 nav=False exec=False lifting=False liftPos=0 task=None queue=0
+2026-08-09 12:11:50,147 INFO STATUS  battery=84% eStop=1 charge=1 nav=False exec=False lifting=False liftPos=0 task=None queue=0
+2026-08-09 12:11:55,150 INFO STATUS  battery=84% eStop=1 charge=1 nav=False exec=False lifting=False liftPos=0 task=None queue=0
+2026-08-09 12:12:00,156 INFO STATUS  battery=84% eStop=1 charge=1 nav=False exec=False lifting=False liftPos=0 task=None queue=0
+2026-08-09 12:12:05,173 INFO STATUS  battery=84% eStop=1 charge=1 nav=False exec=False lifting=False liftPos=0 task=None queue=0
+2026-08-09 12:12:10,167 INFO STATUS  battery=84% eStop=1 charge=1 nav=False exec=False lifting=False liftPos=0 task=None queue=0
+2026-08-09 12:12:15,171 INFO STATUS  battery=84% eStop=1 charge=1 nav=False exec=False lifting=False liftPos=0 task=None queue=0
+
+i also add map id, but it doesn't work 
+
+python reeman_forklift_client.py `
+>>   --broker 192.168.5.115 `
+>>   --hostname rbot55f-260114-003-001 `
+>>   --token "Z2IcM93div5zO1jdJ5EgzaRlNaIHot1iTBCid7JrToG6xnghx4ivtxL0" `
+>>   --key a5F6dmfr `
+>>   --map 54149a9de1a8f8e32ebcd6c476b07a93 `
+>>   --goto home `
+>>   --mqtt-user "Robo" --mqtt-pass "1234"
+
+this command is for checking if it showing an home position
+python reeman_forklift_client.py `
+>>   --broker 192.168.5.115 `
+>>   --hostname rbot55f-260114-003-001 `
+>>   --token "Z2IcM93div5zO1jdJ5EgzaRlNaIHot1iTBCid7JrToG6xnghx4ivtxL0" `
+>>   --key a5F6dmfr `
+>>   --request-points `
+>>   --points-mode calling_model `
+>>   --mqtt-user "Robo" --mqtt-pass "1234"
+
+
+it means that 
+
+What it means
+MQTT link works (Connected, STATUS keeps arriving).
+Your PC did send the job:
+Dispatched calling_model task: {"map": null, "point": "home"}
+There is no TASK RESULT line → the AMR never answered the task.
+So task=None / nav=False = robot ignored the go-home command (not a bad point name).
+home is valid. The robot is not accepting calling tasks right now.
+
+
+Change the Ethernet's IP to the Gateway of the AMR in Powershell(Admin)
+i enter the Gateway of AMR ethernet to my laptop's Ethernet to communicate with AMR with the help of Ethernet cable
+New-NetIPAddress -InterfaceAlias "Ethernet" -IPAddress 192.168.250.10 -PrefixLength 24
+
+Removing the old IP Adresses
+Get-NetIPAddress -InterfaceAlias "Ethernet" -AddressFamily IPv4
+Remove-NetIPAddress -InterfaceAlias "Ethernet" -IPAddress 192.168.2.1 -Confirm:$false
+
+Behavior now
+Power ESP32 (USB‑C or 5V) or press RST
+Wi‑Fi → MQTT (Mosquitto on laptop must already be running)
+Wait for STATUS battery=... → Ready
+Serial Monitor 115200:
+A → move to home
+S → move to p1
+Unplug / plug / RST / open Serial / press A → home again
+
+>>> SHAREABLE SOP (show to others):
+>>>   call_station\SOP_DIRECT_ESP32_AMR.md
+>>> Short guide:
+>>>   call_station\DIRECT_ESP32_GUIDE.md
+
+Think of it like a walkie-talkie call box for a robot forklift.
+
+The big idea
+Your ESP32 is a small remote.
+
+It turns on
+It finds the Wi‑Fi
+It joins the laptop’s chat room (Mosquitto)
+It listens for the robot saying “I’m OK”
+When you press A or S, it tells the robot where to go
+No Python dashboard — the ESP32 talks to the robot itself.
+
+Like a story
+When you plug in power or press RESET:
+
+Blue light — “I’m waking up and looking for Wi‑Fi.”
+It joins Wi‑Fi, gets an IP address.
+Still blue — “I’m calling the chat room on the laptop.”
+If Mosquitto is running → MQTT ok.
+Purple light — “Waiting for the robot to say hello.”
+When the robot sends STATUS (battery=...) → green (ready).
+Screen says: press A for home, S for p1.
+When you press A:
+
+ESP32 writes a secret note (AES encryption) that says “go to home”
+Sends it on the chat room
+Bright green — “I sent it / robot may be moving”
+When you press S:
+
+Same, but “go to p1”
+Who talks to whom
+You → ESP32 → Laptop chat room (Mosquitto) → Robot
+Robot → chat room → ESP32 (battery / moving / stop)
+Safety checks (why it sometimes says “not healthy”)
+Before sending a move, it asks:
+
+Did I hear the robot recently?
+Is the emergency stop released?
+Is the robot not already busy?
+Is the battery high enough?
+
+================================================================================
+END OF Implements.txt
+================================================================================

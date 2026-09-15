@@ -1,0 +1,91 @@
+Drive Diagnostics & Cleaning — Implementation Log
+=================================================
+
+Product purpose
+---------------
+Client-facing Windows tool to scan any drive, show Necessary vs Unnecessary
+items with reasons, let the user CHECK only what should be removed, and
+delete those selected items to free space — without touching important data.
+
+How to run
+----------
+  python main.py
+
+Tip: Right-click → Run as administrator for best results on Windows\Temp,
+Prefetch, Update cache, and Recycle Bin.
+
+User flow
+---------
+1. Choose drive → click Scan drive
+2. Open Unnecessary filter (default) — each cleanable item has a checkbox
+3. Check the items you want removed (or Select all Unnecessary)
+4. Click Remove selected → confirm the list + reasons
+5. Only checked Unnecessary items are cleaned; Necessary/Review stay safe
+6. Result shows files cleared + measured space freed, then auto re-scan
+
+What was implemented
+--------------------
+[Entry]
+- main.py — Windows GUI entry point
+
+[Core]
+- app/models.py — DriveInfo, ScanItem, ScanSummary, CleanResult
+- app/drives.py — Win32 drive list + free/used space
+- app/rules.py — classification rules + reasons + hard protection list
+- app/scanner.py — drive scan; items start UNCHECKED (user selects)
+- app/cleaner.py — reliable remover:
+    * only selected Unnecessary + safe_to_delete
+    * measures actual bytes freed
+    * keeps system folder roots (clears contents)
+    * SHEmptyRecycleBinW for Recycle Bin
+    * robocopy /MIR fallback for stubborn folders
+    * clears read-only attributes + retries
+
+[UI]
+- ui/main_window.py — redesigned light UI:
+    * drive toolbar + Scan / Cancel
+    * stats: Cleanable / Protected / Review / Selected
+    * filters: Unnecessary | Necessary | Review | All
+    * checkbox rows for Unnecessary only (🔒 on protected)
+    * detail pane with reason
+    * Select all / Clear selection / Remove selected
+
+Safety
+------
+- No auto-delete; user must check items and confirm
+- Necessary / Review cannot be removed
+- Cleaner refuses protected paths even if UI is wrong
+- Documents, Desktop, Pictures, Program Files, System32, etc. protected
+
+Why removal looked broken before (fixed in 1.2.0)
+-------------------------------------------------
+- Confusing Diagnostic vs Clean mode blocked easy removal
+- Locked Windows files failed silently / looked unchanged
+- Folder still appeared after “success” because roots are kept on purpose
+- New cleaner reports measured free space + skipped locked files clearly
+
+Verified
+--------
+- Sandbox folder delete + byte measurement OK
+- Live clean of Recent shortcuts: files removed, folder kept, space freed
+- Scan never pre-selects items
+- Necessary items refused by cleaner
+
+File map
+--------
+  main.py
+  requirements.txt
+  Implementation.txt
+  validate_project.py
+  app/models.py
+  app/drives.py
+  app/rules.py
+  app/scanner.py
+  app/cleaner.py
+  ui/main_window.py
+
+Version
+-------
+1.0.0 — Initial delivery
+1.1.0 — Safety/validation fixes
+1.2.0 — Select-then-remove workflow; stronger cleaner; redesigned UI
